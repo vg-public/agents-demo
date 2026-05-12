@@ -1,0 +1,59 @@
+#!/bin/sh
+# =============================================================================
+# Pre-push hook — compile and unit test gate before pushing to remote.
+# Works with VS Code, IntelliJ IDEA, and any Git client on Windows/Mac/Linux.
+#
+# Checks performed:
+#   1. mvn compile  — fail fast on any compilation error before it reaches CI
+#   2. mvn test     — all unit tests must pass
+#
+# Skipping: set SKIP_PRE_PUSH=1 to bypass in emergencies (use sparingly).
+#   SKIP_PRE_PUSH=1 git push
+# =============================================================================
+
+if [ "${SKIP_PRE_PUSH:-0}" = "1" ]; then
+    echo "[pre-push] SKIP_PRE_PUSH=1 set — skipping pre-push checks."
+    echo "[pre-push] WARNING: Only use this in genuine emergencies."
+    exit 0
+fi
+
+# Detect Maven wrapper (mvnw) or fall back to system mvn
+if [ -f "./mvnw" ]; then
+    MVN="./mvnw"
+elif command -v mvn >/dev/null 2>&1; then
+    MVN="mvn"
+else
+    echo "[pre-push] ERROR: Maven (mvn) not found on PATH."
+    echo "           Install Maven or add it to PATH and try again."
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 1. Compile
+# ---------------------------------------------------------------------------
+echo "[pre-push] Compiling project..."
+
+if ! $MVN compile --no-transfer-progress -q; then
+    echo ""
+    echo "[pre-push] ERROR: Compilation failed. Fix all errors before pushing."
+    echo "           Run 'mvn compile' to see the full error output."
+    exit 1
+fi
+
+echo "[pre-push] Compilation successful."
+
+# ---------------------------------------------------------------------------
+# 2. Unit tests
+# ---------------------------------------------------------------------------
+echo "[pre-push] Running unit tests..."
+
+if ! $MVN test --no-transfer-progress -q; then
+    echo ""
+    echo "[pre-push] ERROR: Unit tests failed. Fix all failures before pushing."
+    echo "           Run 'mvn test' to see the full test output."
+    echo "           Run 'mvn surefire-report:report' to generate an HTML report."
+    exit 1
+fi
+
+echo "[pre-push] All tests passed."
+echo "[pre-push] Pre-push checks complete. Pushing to remote..."

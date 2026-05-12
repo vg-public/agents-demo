@@ -1,0 +1,85 @@
+#!/bin/sh
+# =============================================================================
+# Pre-commit hook — enterprise Java / Spring Boot checks.
+# Runs in order; fails fast on the first violation.
+# Works with VS Code, IntelliJ IDEA, and any Git client on Windows/Mac/Linux.
+#
+# Checks performed:
+#   1. Block direct commits to protected branches (main, master, develop)
+#   2. Detect hardcoded secrets / credentials in staged changes
+#   3. Detect System.out.println in staged Java files (use SLF4J instead)
+#   4. Spotless apply (auto-format code)
+#
+# Installation (done automatically by Maven, or run manually):
+#   git config core.hooksPath .githooks
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# 1. Block direct commits to protected branches
+# ---------------------------------------------------------------------------
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null)
+for PROTECTED in main master develop; do
+    if [ "$BRANCH" = "$PROTECTED" ]; then
+        echo "[pre-commit] ERROR: Direct commits to '$BRANCH' are not allowed."
+        echo "             Create a feature branch first:"
+        echo "               git checkout -b feat/your-feature"
+        exit 1
+    fi
+done
+
+# ---------------------------------------------------------------------------
+# 2. Detect hardcoded secrets / credentials in staged diff
+# ---------------------------------------------------------------------------
+SECRET_PATTERNS="password\s*=|passwd\s*=|secret\s*=|api[_.]?key\s*=|access[_.]?token\s*=|private[_.]?key\s*=|BEGIN (RSA|EC|DSA|OPENSSH) PRIVATE KEY|client[_.]?secret\s*="
+STAGED_DIFF=$(git diff --cached)
+
+if echo "$STAGED_DIFF" | grep -iE "$SECRET_PATTERNS" > /dev/null 2>&1; then
+    echo "[pre-commit] ERROR: Possible hardcoded secret or credential detected in staged changes."
+    echo "             Matches found:"
+    echo "$STAGED_DIFF" | grep -iE "$SECRET_PATTERNS"
+    echo ""
+    echo "             Use environment variables or application-local.yml (gitignored) instead."
+    echo "             If this is a false positive, contact your security team before proceeding."
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Detect System.out.println in staged Java files (SonarQube S106)
+# ---------------------------------------------------------------------------
+STAGED_JAVA_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.java$')
+
+if [ -n "$STAGED_JAVA_FILES" ]; then
+    SYSOUT_FILES=$(echo "$STAGED_JAVA_FILES" | xargs grep -l 'System\.out\.print' 2>/dev/null || true)
+    if [ -n "$SYSOUT_FILES" ]; then
+        echo "[pre-commit] ERROR: System.out.println detected in staged Java files."
+        echo "             Use SLF4J instead: log.info(), log.debug(), log.error()"
+        echo "             Offending files:"
+        echo "$SYSOUT_FILES" | sed 's/^/               /'
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# 4. Spotless apply — auto-format code
+# ---------------------------------------------------------------------------
+if [ -f "./mvnw" ]; then
+    MVN="./mvnw"
+elif command -v mvn >/dev/null 2>&1; then
+    MVN="mvn"
+else
+    echo "[pre-commit] ERROR: Maven (mvn) not found on PATH."
+    echo "             Install Maven or add it to PATH and try again."
+    exit 1
+fi
+
+echo "[pre-commit] Running Spotless formatter ($MVN spotless:apply)..."
+
+if ! $MVN spotless:apply --no-transfer-progress -q; then
+    echo "[pre-commit] ERROR: Spotless formatting failed. Check the output above."
+    exit 1
+fi
+
+# Re-stage any files Spotless reformatted so formatted code goes into the commit
+git add -u
+
+echo "[pre-commit] All pre-commit checks passed. Proceeding with commit."

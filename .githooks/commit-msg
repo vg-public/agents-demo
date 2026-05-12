@@ -1,0 +1,81 @@
+#!/bin/sh
+# =============================================================================
+# Commit-msg hook — enforce commit message format.
+# Works with VS Code, IntelliJ IDEA, and any Git client on Windows/Mac/Linux.
+#
+# Accepted formats (either one passes):
+#
+#   Conventional Commits:
+#     <type>(<optional-scope>): <description>
+#     Types: feat, fix, docs, style, refactor, perf, test, chore, ci, build, revert
+#     Examples:
+#       feat(orders): add pagination to list endpoint
+#       fix: prevent NPE in OrderService
+#       chore(deps): upgrade Spring Boot to 3.3.0
+#
+#   Jira ticket prefix:
+#     PROJ-123: <description>
+#     Examples:
+#       PROJ-456: implement discount calculation
+#       MYAPP-12: fix null pointer in payment flow
+#
+# Merge commits, revert commits, and fixup!/squash! commits are allowed through.
+# =============================================================================
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Allow merge commits (Git generates these automatically)
+if echo "$COMMIT_MSG" | grep -qE "^Merge "; then
+    exit 0
+fi
+
+# Allow revert commits (Git generates these automatically)
+if echo "$COMMIT_MSG" | grep -qE "^Revert "; then
+    exit 0
+fi
+
+# Allow interactive rebase helper prefixes (fixup!, squash!, amend!)
+if echo "$COMMIT_MSG" | grep -qE "^(fixup|squash|amend)!"; then
+    exit 0
+fi
+
+# Conventional Commits: type(scope): description  (scope is optional)
+CONVENTIONAL_PATTERN="^(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)(\([a-z0-9._-]+\))?: .{1,100}$"
+
+# Jira ticket: PROJ-123: description
+JIRA_PATTERN="^[A-Z][A-Z0-9]+-[0-9]+: .{1,100}$"
+
+# Check first non-empty, non-comment line only (the subject line)
+SUBJECT=$(echo "$COMMIT_MSG" | grep -v "^#" | head -n 1)
+
+if echo "$SUBJECT" | grep -qE "$CONVENTIONAL_PATTERN"; then
+    exit 0
+fi
+
+if echo "$SUBJECT" | grep -qE "$JIRA_PATTERN"; then
+    exit 0
+fi
+
+echo ""
+echo "[commit-msg] ERROR: Commit message does not follow the required format."
+echo ""
+echo "  Subject line received:"
+echo "    $SUBJECT"
+echo ""
+echo "  Required format (choose one):"
+echo ""
+echo "  1. Conventional Commits:"
+echo "       feat(scope): short description"
+echo "       fix: short description"
+echo "     Allowed types: feat | fix | docs | style | refactor | perf | test | chore | ci | build | revert"
+echo ""
+echo "  2. Jira ticket:"
+echo "       PROJ-123: short description"
+echo ""
+echo "  Rules:"
+echo "    - Subject line must be 1-100 characters after the prefix"
+echo "    - Use imperative mood: 'add feature' not 'added feature'"
+echo "    - Do not end the subject line with a period"
+echo ""
+exit 1
