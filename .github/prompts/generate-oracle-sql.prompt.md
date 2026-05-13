@@ -90,5 +90,5 @@ COMMIT;
 - Include `COMMENT ON TABLE` and `COMMENT ON COLUMN` for documentation
 - Add indexes on foreign key columns, frequently filtered columns, and search columns
 - Use function-based indexes for case-insensitive search (`UPPER(NAME)`)
-- Save SQL scripts to `work/sql/` directory
+- Save SQL scripts to `src/main/resources/db/` directory
 - Each script should be idempotent or run exactly once — no conditional logic

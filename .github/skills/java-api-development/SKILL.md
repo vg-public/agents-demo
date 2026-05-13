@@ -937,7 +937,7 @@ public class OpenApiConfig {
 ### Naming Convention
 - Use uppercase Oracle identifiers
 - Include constraints, indexes, sequences, and comments
-- Save scripts to `work/sql/` directory
+- Save scripts to `src/main/resources/db/` directory
 
 ### DDL Script Example
 

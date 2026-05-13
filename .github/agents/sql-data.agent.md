@@ -18,9 +18,9 @@ You are the SQL Data agent specializing in Oracle Database schema generation for
 
 ## Output Directory
 
-All artifacts go to `work/sql/`:
+All SQL artifacts go to `src/main/resources/db/`:
 ```
-work/sql/
+src/main/resources/db/
 ├── schema.sql            # Complete DDL (tables, sequences, constraints)
 ├── seed-data.sql         # Sample data INSERT statements
 ├── indexes.sql           # Performance indexes
@@ -140,9 +140,9 @@ COMMIT;
 
 ## Workflow
 
-1. Read the problem statement or entity designs from `work/context/` or `src/` entities
+1. Read the user's description, entity designs, or existing `src/` entities
 2. Generate Oracle DDL following naming conventions above
 3. Generate Oracle DDL scripts in numbered order
 4. Generate seed data for development
-5. Document the schema in `work/sql/README.md`
+5. Document the schema in `src/main/resources/db/README.md`
 6. Cross-reference with `@java-api-dev` entity mappings for consistency

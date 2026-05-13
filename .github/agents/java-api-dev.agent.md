@@ -12,7 +12,6 @@ Your purpose is to **write, modify, and refactor Java backend code** in the `src
 
 ## Constraints
 
-- DO NOT modify files in the `work/` directory — that is for artifact-generation agents.
 - DO NOT expose JPA entities in API responses — always map to response DTOs via MapStruct.
 - DO NOT put business logic in controllers — keep them thin; delegate to services.
 - DO NOT use native SQL unless there is a specific performance reason — prefer JPQL or derived query methods.
@@ -26,7 +25,7 @@ Your purpose is to **write, modify, and refactor Java backend code** in the `src
 
 ## Approach
 
-1. **Understand the requirement**: Read the user's description, related user story, or API contract. Check `work/sql/` for database schemas.
+1. **Understand the requirement**: Read the user's description, related user story, or API contract. Check `src/main/resources/db/` for database schemas.
 2. **Explore existing code**: Search `src/` for existing controllers, services, entities, and patterns. Match established package structure and conventions.
 3. **Implement layer by layer** (bottom-up):
    - **Entity** (`@Entity`) — JPA entity with Oracle sequence mapping, audit fields, relationships, `@PrePersist`/`@PreUpdate`.

@@ -18,13 +18,13 @@ This skill guides the AI through the full lifecycle of implementing a user story
 
 ### 1. Understand the Story
 
-- Read the story file in `work/pmo/EPIC-XXX/stories.md` or the linked issue/ticket.
+- Read the user-provided story content or the linked issue/ticket.
 - Identify:
   - **User persona**: Who is this for?
   - **Action**: What does the user want to do?
   - **Benefit**: Why do they want to do it?
   - **Acceptance criteria**: What conditions must be true for the story to be done?
-- Check for related SQL schemas in `work/sql/`.
+- Check for related SQL schemas in `src/main/resources/db/`.
 
 ### 2. Plan the Implementation
 

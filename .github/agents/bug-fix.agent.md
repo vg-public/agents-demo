@@ -12,7 +12,7 @@ Your purpose is to **diagnose, fix, and verify bug resolutions** in Java code wi
 
 ## Constraints
 
-- DO NOT modify files in the `work/` directory.
+- DO NOT modify test infrastructure or configuration unless the bug is in those files.
 - DO NOT apply speculative fixes — always diagnose root cause first.
 - DO NOT make unrelated changes while fixing a bug — keep the fix minimal and focused.
 - DO NOT suppress or swallow errors — fix the root cause, not the symptom.

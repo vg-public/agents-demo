@@ -13,7 +13,7 @@ Your purpose is to **write, fix, and improve automated tests** for code in the `
 ## Constraints
 
 - DO NOT modify production code unless a test reveals a genuine bug that needs fixing.
-- DO NOT modify files in the `work/` directory.
+- DO NOT modify production code unless a test reveals a genuine bug that needs fixing.
 - DO NOT write tests that depend on execution order or shared mutable state.
 - DO NOT over-mock — mock external dependencies (repositories, HTTP clients), not the code under test.
 - DO NOT write trivial tests (testing getters/setters or framework behavior).

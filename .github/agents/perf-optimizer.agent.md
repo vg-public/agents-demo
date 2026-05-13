@@ -12,7 +12,6 @@ Your purpose is to **identify, analyze, and resolve performance bottlenecks** in
 
 ## Constraints
 
-- DO NOT modify files in the `work/` directory.
 - DO NOT optimize without first profiling or measuring — no premature optimization.
 - DO NOT sacrifice code readability for micro-optimizations.
 - DO NOT introduce caching without considering invalidation strategy.

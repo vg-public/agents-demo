@@ -104,7 +104,6 @@ target/
 .idea/
 *.iml
 *.log
-work/
 docs/
 README.md
 docker-compose*.yml

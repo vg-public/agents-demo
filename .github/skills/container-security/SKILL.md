@@ -112,7 +112,6 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
    Dockerfile
    .env
    .env.*
-   work/
    ```
 
 5. **Health checks**:

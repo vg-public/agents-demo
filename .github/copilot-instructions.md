@@ -51,20 +51,6 @@ src/
 └── pom.xml
 ```
 
-## Output Directory Convention (Artifact Generation)
-
-Generated design artifacts are stored under `work/`:
-
-```
-work/
-├── context/          # Problem statements, notes, and shared context
-├── sql/              # Oracle SQL schema, seed data, and documentation
-├── pmo/              # Epics and stories
-│   ├── epics.md
-│   └── EPIC-XXX/    # Subfolder per epic containing epic.md and stories.md
-└── qa/               # Test cases and QA documentation
-```
-
 ## Coding Standards
 
 ### General
@@ -149,24 +135,15 @@ All code generated or modified by agents and prompts **MUST** comply with these 
 - Preserve existing tests — add new tests, never delete passing tests
 - If a fix requires modifying existing code, explain the impact and get confirmation
 
-## Agent Workflow
-
-1. **Save context first**: When a problem statement is provided, save it to `work/context/problem-statement.md`
-2. **Cross-reference**: Agents should check `work/context/` and other agent outputs in `work/` for consistency
-3. **Overwrite safely**: When regenerating, overwrite existing files rather than creating duplicates
-
 ## Available Agents
 
 | Agent | Purpose | Output |
 |-------|---------|--------|
-| `@dev-orchestrator` | Routes tasks to the right agent — start here if unsure | (routing) |
+| `@dev-orchestrator` | Orchestrates tasks to the right agent — start here if unsure | (orchestration) |
 | `@java-api-dev` | Build Spring Boot REST API endpoints, services, entities, DTOs | `src/` |
 | `@new-api-scaffold` | Scaffold a complete new resource (all layers + tests) | `src/` |
 | `@api-modification` | Safely modify existing APIs across all layers | `src/` |
-| `@sql-data` | Generate Oracle SQL schema, sequences, and seed data | `work/sql/` |
-| `@epic` | Generate Agile epics from problem statements | `work/pmo/` |
-| `@story` | Generate user stories for each epic | `work/pmo/EPIC-XXX/` |
-| `@test-case` | Generate test cases and QA documentation | `work/qa/` |
+| `@sql-data` | Generate Oracle SQL schema, sequences, and seed data | `src/main/resources/db/` |
 | `@testing` | Write JUnit 5 + Mockito unit and integration tests | `src/test/` |
 | `@bug-fix` | Diagnose and fix bugs in Java/Spring Boot code | `src/` |
 | `@code-review` | Review code for correctness, security, performance | (read-only) |

@@ -26,26 +26,14 @@ These agents work on **actual project code** in `src/`.
 | Code Review | `@code-review` | Review code for correctness, security, performance, readability (**read-only**) | Java, Spring Boot |
 | Perf Optimizer | `@perf-optimizer` | Optimize JPA queries, HikariCP pools, Oracle indexes, caching | Spring Data JPA, Oracle, HikariCP |
 | Doc Gen | `@doc-gen` | Generate README, Javadoc, ADRs, API documentation, Mermaid diagrams | Markdown, Javadoc |
-
----
-
-## Artifact Generation Agents
-
-These agents generate **design artifacts** under the `work/` directory.
-
-| Agent | Command | Purpose | Output Directory |
-|-------|---------|---------|-----------------|
-| Epic | `@epic` | Generate Agile epics from problem statements | `work/pmo/` |
-| Story | `@story` | Generate user stories for each epic | `work/pmo/EPIC-XXX/` |
-| SQL Data | `@sql-data` | Generate Oracle SQL schema, sequences, indexes, and seed data | `work/sql/` |
-| Test Case | `@test-case` | Generate QA test cases and test plans | `work/qa/` |
+| SQL Data | `@sql-data` | Generate Oracle SQL schema, sequences, indexes, and seed data | Oracle SQL |
 
 ---
 
 ## Common Workflows
 
 ### Build a New API Resource (End-to-End)
-`@epic` → `@story` → `@sql-data` → `@new-api-scaffold` → `@testing` → `@code-review` → `@doc-gen`
+`@sql-data` → `@new-api-scaffold` → `@testing` → `@code-review` → `@doc-gen`
 
 ### Quick Scaffold a New Resource
 `@new-api-scaffold` — generates entity, repo, service, DTOs, mapper, controller, and tests in one pass
