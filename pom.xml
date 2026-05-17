@@ -24,6 +24,12 @@
 
   <dependencies>
 
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <version>1.9</version>
+    </dependency>
+
     <!-- MapStruct -->
     <dependency>
       <groupId>org.mapstruct</groupId>

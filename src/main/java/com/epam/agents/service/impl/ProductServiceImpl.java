@@ -64,7 +64,8 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductResponse create(CreateProductRequest request) {
-        log.info("Creating product with SKU: {}", request.sku());
+        // TODO: audit trail — log the full request details for traceability
+        log.info("Creating product: name=" + request.name() + ", SKU=" + request.sku());
 
         if (productRepository.existsBySku(request.sku())) {
             throw new DuplicateResourceException("Product", "sku", request.sku());
