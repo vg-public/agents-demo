@@ -1,188 +1,186 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.5</version>
-        <relativePath/>
-    </parent>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.2.5</version>
+    <relativePath/>
+  </parent>
 
-    <groupId>com.epam</groupId>
-    <artifactId>agents-demo</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>agents-demo</name>
-    <description>Spring Boot REST API Demo</description>
+  <groupId>com.epam</groupId>
+  <artifactId>agents-demo</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>agents-demo</name>
+  <description>Spring Boot REST API Demo</description>
 
-    <properties>
-        <java.version>17</java.version>
-        <mapstruct.version>1.5.5.Final</mapstruct.version>
-        <springdoc.version>2.5.0</springdoc.version>
-        <spotless.version>2.43.0</spotless.version>
-    </properties>
+  <properties>
+    <java.version>17</java.version>
+    <mapstruct.version>1.5.5.Final</mapstruct.version>
+    <springdoc.version>2.5.0</springdoc.version>
+    <spotless.version>2.43.0</spotless.version>
+  </properties>
 
-    <dependencies>
-        <!-- Spring Boot Starters -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
+  <dependencies>
 
-        <!-- SpringDoc OpenAPI -->
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>${springdoc.version}</version>
-        </dependency>
+    <!-- MapStruct -->
+    <dependency>
+      <groupId>org.mapstruct</groupId>
+      <artifactId>mapstruct</artifactId>
+      <version>${mapstruct.version}</version>
+    </dependency>
 
-        <!-- MapStruct -->
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct</artifactId>
-            <version>${mapstruct.version}</version>
-        </dependency>
+    <!-- SpringDoc OpenAPI -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+      <version>${springdoc.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <!-- Spring Boot Starters -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
 
-        <!-- Oracle JDBC Driver -->
-        <dependency>
-            <groupId>com.oracle.database.jdbc</groupId>
-            <artifactId>ojdbc11</artifactId>
-            <scope>runtime</scope>
-        </dependency>
+    <!-- H2 for local dev/test -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>runtime</scope>
+    </dependency>
 
-        <!-- H2 for local dev/test -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
+    <!-- Oracle JDBC Driver -->
+    <dependency>
+      <groupId>com.oracle.database.jdbc</groupId>
+      <artifactId>ojdbc11</artifactId>
+      <scope>runtime</scope>
+    </dependency>
 
-        <!-- Test -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <!-- Test -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
-    <build>
-        <plugins>
-            <!-- Auto-register .githooks as the Git hooks directory on first Maven run.
+  <build>
+    <plugins>
+
+      <!-- Spotless Code Formatter -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless.version}</version>
+        <configuration>
+          <java>
+            <!-- Source files to format -->
+            <includes>
+              <include>src/main/java/**/*.java</include>
+              <include>src/test/java/**/*.java</include>
+            </includes>
+
+            <!-- Import ordering: static imports first, then java, javax, org, com -->
+            <importOrder>
+              <order>\#,java,javax,jakarta,org,com</order>
+            </importOrder>
+
+            <!-- Remove unused imports -->
+            <removeUnusedImports/>
+
+            <!-- Eclipse JDT formatter — supports configurable line length (300 chars for wide screens) -->
+            <eclipse>
+              <version>4.26</version>
+              <file>${project.basedir}/eclipse-java-formatter.xml</file>
+            </eclipse>
+
+            <!-- Trim trailing whitespace -->
+            <trimTrailingWhitespace/>
+
+            <!-- Ensure files end with a newline -->
+            <endWithNewline/>
+
+            <!-- Format Javadoc -->
+            <formatAnnotations/>
+          </java>
+
+          <!-- Format pom.xml -->
+          <pom>
+            <includes>
+              <include>pom.xml</include>
+            </includes>
+            <sortPom>
+              <expandEmptyElements>false</expandEmptyElements>
+              <sortProperties>false</sortProperties>
+              <sortDependencies>scope,groupId,artifactId</sortDependencies>
+              <sortPlugins>groupId,artifactId</sortPlugins>
+            </sortPom>
+          </pom>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>validate</phase>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- MapStruct Annotation Processor -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.mapstruct</groupId>
+              <artifactId>mapstruct-processor</artifactId>
+              <version>${mapstruct.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+      <!-- Auto-register .githooks as the Git hooks directory on first Maven run.
                  This activates the pre-commit Spotless hook for all IDEs (VS Code, IntelliJ, etc.)
                  without any manual setup step after cloning. -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <id>setup-git-hooks</id>
-                        <phase>initialize</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>git</executable>
-                            <arguments>
-                                <argument>config</argument>
-                                <argument>core.hooksPath</argument>
-                                <argument>.githooks</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.2.0</version>
+        <executions>
+          <execution>
+            <id>setup-git-hooks</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>initialize</phase>
+            <configuration>
+              <executable>git</executable>
+              <arguments>
+                <argument>config</argument>
+                <argument>core.hooksPath</argument>
+                <argument>.githooks</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
 
-            <!-- Spring Boot Maven Plugin -->
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-
-            <!-- MapStruct Annotation Processor -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.mapstruct</groupId>
-                            <artifactId>mapstruct-processor</artifactId>
-                            <version>${mapstruct.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-
-            <!-- Spotless Code Formatter -->
-            <plugin>
-                <groupId>com.diffplug.spotless</groupId>
-                <artifactId>spotless-maven-plugin</artifactId>
-                <version>${spotless.version}</version>
-                <configuration>
-                    <java>
-                        <!-- Source files to format -->
-                        <includes>
-                            <include>src/main/java/**/*.java</include>
-                            <include>src/test/java/**/*.java</include>
-                        </includes>
-
-                        <!-- Import ordering: static imports first, then java, javax, org, com -->
-                        <importOrder>
-                            <order>\#,java,javax,jakarta,org,com</order>
-                        </importOrder>
-
-                        <!-- Remove unused imports -->
-                        <removeUnusedImports/>
-
-                        <!-- Eclipse JDT formatter — supports configurable line length (300 chars for wide screens) -->
-                        <eclipse>
-                            <version>4.26</version>
-                            <file>${project.basedir}/eclipse-java-formatter.xml</file>
-                        </eclipse>
-
-                        <!-- Trim trailing whitespace -->
-                        <trimTrailingWhitespace/>
-
-                        <!-- Ensure files end with a newline -->
-                        <endWithNewline/>
-
-                        <!-- Format Javadoc -->
-                        <formatAnnotations/>
-                    </java>
-
-                    <!-- Format pom.xml -->
-                    <pom>
-                        <includes>
-                            <include>pom.xml</include>
-                        </includes>
-                        <sortPom>
-                            <expandEmptyElements>false</expandEmptyElements>
-                            <sortProperties>false</sortProperties>
-                            <sortDependencies>scope,groupId,artifactId</sortDependencies>
-                            <sortPlugins>groupId,artifactId</sortPlugins>
-                        </sortPom>
-                    </pom>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <phase>validate</phase>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+      <!-- Spring Boot Maven Plugin -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 </project>
