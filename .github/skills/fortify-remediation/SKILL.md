@@ -227,6 +227,211 @@ try (Connection conn = dataSource.getConnection();
 }
 ```
 
+### Command Injection (CWE-78)
+**Fortify Category**: `Command Injection`, `OS Command Injection`
+
+```java
+// VULNERABLE — user input passed directly to shell
+Runtime.getRuntime().exec("ping " + userInput);
+
+// FIXED — use ProcessBuilder with explicit argument list (no shell interpretation)
+ProcessBuilder pb = new ProcessBuilder("ping", "-c", "4", validatedHost);
+pb.redirectErrorStream(true);
+Process process = pb.start();
+```
+
+**Key Rule**: Never pass user input to `Runtime.exec(String)` or `ProcessBuilder(String)`. Always use the argument-list form and validate inputs against an allowlist.
+
+### Deserialization of Untrusted Data (CWE-502)
+**Fortify Category**: `Unsafe Deserialization`, `Object Deserialization`
+
+```java
+// VULNERABLE — deserializing arbitrary classes from untrusted input
+ObjectInputStream ois = new ObjectInputStream(inputStream);
+Object obj = ois.readObject();
+
+// FIXED — use Jackson with explicit type binding (no polymorphic typing)
+ObjectMapper mapper = new ObjectMapper();
+mapper.deactivateDefaultTyping();
+MyDto dto = mapper.readValue(inputStream, MyDto.class);
+
+// If polymorphic typing is required, use allowlist:
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = CreditPayment.class, name = "credit"),
+    @JsonSubTypes.Type(value = DebitPayment.class, name = "debit")
+})
+public abstract class Payment { }
+```
+
+**Key Rule**: Never use Java native serialization (`ObjectInputStream`) for untrusted data. Use Jackson with explicit DTO classes.
+
+### Server-Side Request Forgery — SSRF (CWE-918)
+**Fortify Category**: `Server-Side Request Forgery`
+
+```java
+// VULNERABLE — user-provided URL fetched without validation
+URL url = new URL(request.getParameter("url"));
+HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+// FIXED — validate URL against allowlist and block internal networks
+String targetUrl = request.getParameter("url");
+URI uri = URI.create(targetUrl);
+
+// Block internal networks
+InetAddress address = InetAddress.getByName(uri.getHost());
+if (address.isLoopbackAddress() || address.isSiteLocalAddress() || address.isLinkLocalAddress()) {
+    throw new SecurityException("SSRF attempt: internal network access blocked");
+}
+
+// Validate against allowed domains
+if (!ALLOWED_DOMAINS.contains(uri.getHost())) {
+    throw new SecurityException("SSRF attempt: domain not in allowlist");
+}
+```
+
+### Weak Cryptographic Algorithm (CWE-327 / CWE-328)
+**Fortify Category**: `Weak Encryption`, `Weak Hash`
+
+```java
+// VULNERABLE — weak hash algorithm
+MessageDigest md = MessageDigest.getInstance("MD5");    // or SHA-1
+byte[] hash = md.digest(data);
+
+// FIXED — use SHA-256 or stronger
+MessageDigest md = MessageDigest.getInstance("SHA-256");
+byte[] hash = md.digest(data);
+
+// VULNERABLE — weak encryption
+Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+
+// FIXED — use AES-256-GCM
+Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+SecretKeySpec keySpec = new SecretKeySpec(key, "AES");
+GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+cipher.init(Cipher.ENCRYPT_MODE, keySpec, gcmSpec);
+```
+
+**For password hashing** — use BCrypt (Spring Security):
+```java
+// FIXED — BCrypt for password storage
+PasswordEncoder encoder = new BCryptPasswordEncoder(12);
+String hashed = encoder.encode(rawPassword);
+```
+
+### Cookie Security (CWE-614 / CWE-1004)
+**Fortify Category**: `Cookie Security: Missing Secure Flag`, `Cookie Security: Missing HttpOnly Flag`
+
+```java
+// VULNERABLE — cookie without security flags
+Cookie cookie = new Cookie("sessionId", token);
+response.addCookie(cookie);
+
+// FIXED — set Secure, HttpOnly, and SameSite
+Cookie cookie = new Cookie("sessionId", token);
+cookie.setSecure(true);       // Only sent over HTTPS
+cookie.setHttpOnly(true);     // Not accessible via JavaScript
+cookie.setPath("/");
+cookie.setMaxAge(3600);
+response.addCookie(cookie);
+
+// Spring Boot application.yml approach:
+// server.servlet.session.cookie.secure: true
+// server.servlet.session.cookie.http-only: true
+// server.servlet.session.cookie.same-site: strict
+```
+
+### Race Condition (CWE-362)
+**Fortify Category**: `Race Condition`, `Race Condition: Singleton Member Field`
+
+```java
+// VULNERABLE — shared mutable state in singleton Spring bean
+@Service
+public class CounterService {
+    private int counter = 0;  // Fortify flags: race condition
+
+    public int increment() {
+        return ++counter;      // Not thread-safe
+    }
+}
+
+// FIXED — use AtomicInteger or synchronized access
+@Service
+public class CounterService {
+    private final AtomicInteger counter = new AtomicInteger(0);
+
+    public int increment() {
+        return counter.incrementAndGet();
+    }
+}
+
+// For database operations — use optimistic locking:
+@Version
+private Long version;
+```
+
+### Denial of Service: Regular Expression (CWE-1333)
+**Fortify Category**: `Denial of Service: Regular Expression`, `ReDoS`
+
+```java
+// VULNERABLE — catastrophic backtracking possible
+Pattern pattern = Pattern.compile("(a+)+b");  // ReDoS with input "aaaaaaaaaaaac"
+
+// FIXED — simplify regex to avoid nested quantifiers
+Pattern pattern = Pattern.compile("a+b");
+
+// FIXED — add input length validation before regex
+if (input.length() > MAX_INPUT_LENGTH) {
+    throw new ValidationException("Input too long");
+}
+Pattern pattern = Pattern.compile("a+b");
+Matcher matcher = pattern.matcher(input);
+```
+
+**Key Rule**: Avoid nested quantifiers (`(a+)+`, `(a*)*`, `(a|b*)+`). Limit input length before matching.
+
+---
+
+## False Positive Assessment Guide
+
+Use this checklist to assess whether a finding is a true or false positive:
+
+| Category | Common False Positive Scenarios |
+|----------|-------------------------------|
+| SQL Injection | Input from internal enum/constant, Spring Data derived queries, `@Param`-bound JPQL already in use |
+| XSS | REST API returning JSON (Content-Type: application/json), no HTML rendering |
+| Path Traversal | Path constructed from config file or database (not user input), Spring Resource loading |
+| Log Forging | Value from enum, integer ID, or internal constant (not user-controlled string) |
+| Null Dereference | Object guaranteed non-null by prior validation (`@NotNull`, `@Valid`, Optional unwrap) |
+| Hardcoded Password | Test credentials in `src/test/`, placeholder values in comments/documentation |
+| Insecure Randomness | Non-security context (shuffling UI elements, test data generation) |
+| SSRF | URL from internal configuration, not user-supplied |
+| Weak Crypto | Non-security use case (checksums for caching, non-sensitive data fingerprints in tests) |
+
+---
+
+## Verification Checklist
+
+After applying a fix, verify it resolves the finding:
+
+| Category | Verification |
+|----------|-------------|
+| SQL Injection | Confirm no string concatenation in query; all inputs bound via `@Param` or `?` |
+| XSS | Confirm output is encoded or Content-Type prevents HTML rendering |
+| Path Traversal | Confirm path is canonicalized and validated against base directory |
+| Command Injection | Confirm no shell interpretation; arguments are in list form |
+| Hardcoded Password | Confirm value comes from `@Value`, environment, or vault at runtime |
+| Insecure Randomness | Confirm `SecureRandom` instance used for all security-sensitive operations |
+| Log Forging | Confirm CRLF stripped and parameterized logging (`{}`) used |
+| XXE | Confirm external entities and DTDs disabled on the XML parser |
+| SSRF | Confirm URL validated against allowlist and internal networks blocked |
+| Deserialization | Confirm no `ObjectInputStream.readObject()` on untrusted data; Jackson with typed DTOs |
+| Weak Crypto | Confirm SHA-256+ for hashing, AES-256-GCM for encryption, BCrypt for passwords |
+| Cookie Security | Confirm `Secure`, `HttpOnly`, and `SameSite` flags are set |
+| Race Condition | Confirm atomic operations, synchronized blocks, or `@Version` optimistic locking |
+| ReDoS | Confirm no nested quantifiers; input length limited before regex matching |
+| Unreleased Resource | Confirm try-with-resources wraps all `Closeable`/`AutoCloseable` objects |
+
 ---
 
 ## Suppression Guidelines

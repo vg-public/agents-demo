@@ -1,6 +1,6 @@
 # Agents Registry
 
-This workspace provides **13 custom Copilot agents** organized into four categories — all focused on **Java Spring Boot REST API development** with **Oracle Database**.
+This workspace provides **14 custom Copilot agents** organized into four categories — all focused on **Java Spring Boot REST API development** with **Oracle Database**.
 
 ---
 
@@ -23,7 +23,9 @@ These agents work on **actual project code** in `src/`.
 | API Modification | `@api-modification` | Safely modify existing APIs — add/remove fields, change validation, update endpoints across all layers | Java, Spring Boot, JPA |
 | Testing | `@testing` | Write JUnit 5 + Mockito unit tests, MockMvc controller tests, @DataJpaTest repository tests | JUnit 5, Mockito, AssertJ, MockMvc |
 | Bug Fix | `@bug-fix` | Diagnose and fix bugs — stack traces, JPA issues, validation errors | Java, Spring Boot, Hibernate |
-| Code Review | `@code-review` | Review code for correctness, security, performance, readability (**read-only**) | Java, Spring Boot |
+| Fortify Fix | `@fortify-fix` | Triage and fix Fortify SAST vulnerabilities with minimal code changes | Java, Spring Boot, Fortify SAST |
+| Mend Fix | `@mend-fix` | Triage and fix Mend SCA vulnerable dependencies with minimal pom.xml changes | Maven, Mend SCA, OWASP |
+| Code Review | `@code-review` | Review code for correctness, security (OWASP 2025), SonarQube rules, Java 17+/Spring Boot 3.2+ standards — **interactive review + fix** | Java, Spring Boot, SonarQube |
 | Perf Optimizer | `@perf-optimizer` | Optimize JPA queries, HikariCP pools, Oracle indexes, caching | Spring Data JPA, Oracle, HikariCP |
 | Doc Gen | `@doc-gen` | Generate README, Javadoc, ADRs, API documentation, Mermaid diagrams | Markdown, Javadoc |
 | SQL Data | `@sql-data` | Generate Oracle SQL schema, sequences, indexes, and seed data | Oracle SQL |
@@ -56,6 +58,12 @@ These agents work on **actual project code** in `src/`.
 ### Code Quality Improvement
 `@code-review` → `@bug-fix` → `@perf-optimizer` → `@testing` → `@doc-gen`
 
+### Fix Fortify Security Findings
+`@fortify-fix` → `@testing` (regression tests) → `@code-review` (verify fix quality)
+
+### Fix Mend SCA Vulnerable Dependencies
+`@mend-fix` → `@testing` (regression tests) → `@code-review` (verify no breaking changes)
+
 ---
 
 ## Skills
@@ -69,14 +77,15 @@ All skills are available in `.github/skills/` and are wired into the relevant ag
 | `unit-testing` | `@testing` | JUnit 5 + Mockito + MockMvc patterns |
 | `api-debugging` | `@java-api-dev`, `@bug-fix` | REST API error diagnosis |
 | `bug-fix-workflow` | `@bug-fix` | Systematic bug-fixing methodology |
-| `code-review` | `@code-review` | Code review checklists |
-| `security-code-review` | `@code-review` | OWASP-aligned security review |
+| `code-review` | `@code-review` | Code review checklists with SonarQube rule catalogue |
+| `security-code-review` | `@code-review` | OWASP 2025 aligned security review |
+| `sonarqube-remediation` | `@code-review`, (security workflows) | SonarQube finding remediation patterns |
 | `performance-optimization` | `@perf-optimizer`, `@code-review` | Performance profiling methodology |
 | `story-implementation` | `@api-modification`, `@new-api-scaffold` | Story → code workflow |
 | `git-workflow` | (general use) | Git branching and commit conventions |
-| `fortify-remediation` | (security workflows) | Fortify SAST finding remediation |
-| `mend-vulnerability-remediation` | (security workflows) | Maven dependency vulnerability remediation |
-| `sonarqube-remediation` | (security workflows) | SonarQube finding remediation |
+| `fortify-remediation` | `@fortify-fix` | Fortify SAST finding remediation |
+| `mend-vulnerability-remediation` | `@mend-fix` | Mend SCA dependency vulnerability remediation |
+
 | `cicd-pipeline-security` | (security workflows) | CI/CD pipeline hardening |
 | `secret-detection` | (security workflows) | Secret scanning and prevention |
 | `container-security` | (security workflows) | Docker/K8s security for Spring Boot |
@@ -128,10 +137,13 @@ Reusable `.prompt.md` files in `.github/prompts/` for common day-to-day tasks. I
 
 | Prompt | Purpose |
 |--------|---------|
-| `code-review` | Structured review: correctness, security, performance, best practices |
+| `code-review` | Interactive review + fix: correctness, security (OWASP 2025), SonarQube rules, Java 17+/Spring Boot 3.2+ |
 | `security-review` | OWASP Top 10 aligned security audit |
 | `refactor-code` | Clean code refactoring without behavior changes |
 | `fix-sonar-finding` | Fix SonarQube bugs, vulnerabilities, and code smells |
+| `fix-fortify-finding` | Fix a single Fortify SAST finding with minimal code change |
+| `fix-mend-finding` | Fix a single Mend SCA finding with minimal pom.xml change |
+| `triage-fortify-report` | Triage a batch of Fortify findings into a prioritized plan |
 | `optimize-query` | JPA/Hibernate query optimization (N+1, projections, indexes) |
 | `check-dependencies` | Audit Maven dependencies for CVEs and outdated versions |
 

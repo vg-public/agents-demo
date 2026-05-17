@@ -146,7 +146,8 @@ All code generated or modified by agents and prompts **MUST** comply with these 
 | `@sql-data` | Generate Oracle SQL schema, sequences, and seed data | `src/main/resources/db/` |
 | `@testing` | Write JUnit 5 + Mockito unit and integration tests | `src/test/` |
 | `@bug-fix` | Diagnose and fix bugs in Java/Spring Boot code | `src/` |
-| `@code-review` | Review code for correctness, security, performance | (read-only) |
+| `@fortify-fix` | Triage and fix Fortify SAST vulnerabilities with minimal code changes | `src/` |
+| `@code-review` | Review code for correctness, security (OWASP 2025), SonarQube rules, Java 17+/Spring Boot 3.2+ — interactive review + fix | `src/` |
 | `@perf-optimizer` | Optimize JPA queries, connection pools, caching | `src/` |
 | `@doc-gen` | Generate README, Javadoc, ADRs, API documentation | `docs/` |
 
