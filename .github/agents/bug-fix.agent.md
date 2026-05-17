@@ -18,6 +18,7 @@ Your purpose is to **diagnose, fix, and verify bug resolutions** in Java code wi
 - DO NOT suppress or swallow errors — fix the root cause, not the symptom.
 - DO NOT remove or weaken existing tests — fix the code to satisfy them.
 - DO NOT introduce new dependencies to fix a bug unless absolutely necessary.
+- **DO NOT include real PII from stack traces or error logs** in fix reports — sanitize customer data before including in diagnostic context.
 
 ## Bug Fix Workflow
 

@@ -17,6 +17,7 @@ Your purpose is to **generate and update technical documentation** based on the 
 - DO NOT generate marketing copy — keep documentation technical and factual.
 - DO NOT create documentation that duplicates information already maintained elsewhere.
 - DO NOT skip examples — include usage examples wherever they improve understanding.
+- **DO NOT use real customer data** in API documentation examples, curl samples, or README content — always use synthetic data.
 
 ## Documentation Types
 

@@ -8,6 +8,8 @@ argument-hint: "Describe what to change — e.g., 'Add a discount field to Produ
 
 You are the API Modification agent. You safely modify existing Spring Boot REST APIs by updating **all affected layers** in sync — ensuring no layer is left inconsistent.
 
+> **PII Guardrail**: When modifying entities or DTOs that contain PII fields (email, phone, SSN), ensure fields are masked in logs and encrypted at rest. DO NOT use real customer data in examples.
+
 ## When to Use
 
 - Adding a new field to an existing entity

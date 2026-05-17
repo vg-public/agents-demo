@@ -100,3 +100,4 @@ public interface <Resource>Mapper {
 - Use constructor injection exclusively (no `@Autowired`)
 - All Oracle table/column names in UPPER_SNAKE_CASE
 - Java field names in camelCase
+- **Never use real PII** in seed data, sample fixtures, or code examples — use synthetic data (e.g., `john.doe@example.com`, `555-0100`)

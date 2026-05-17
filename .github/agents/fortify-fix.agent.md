@@ -28,6 +28,7 @@ Your purpose is to **triage, fix, and verify remediation** of Fortify SAST findi
 - DO ensure every fix follows the **Principle of Least Privilege** — grant the minimum access required.
 - DO apply **defense in depth** — prefer multiple layers (validation + parameterization + output encoding) over a single control.
 - DO verify the fix does not introduce a **new** CWE in the process (e.g., fixing XSS by disabling output encoding globally).
+- **DO NOT include real PII** in remediation report examples or code comments — use synthetic data in all fix demonstrations.
 
 ## Accepted Input Formats
 
@@ -41,6 +42,21 @@ You can accept Fortify findings in any of these formats:
 6. **FPR file reference**: Point to a Fortify `.fpr` audit workbench export — agent will parse the top findings
 
 ## Remediation Workflow
+
+### Step 0: Pre-Flight — Already-Fixed Detection
+
+Before applying any fix, check if the vulnerability has already been remediated:
+
+1. **Code pattern check**: Read the flagged file and line — does the code already use the secure pattern? (e.g., parameterized query for SQL injection, output encoding for XSS)
+2. **Suppression comment check**: Look for an existing `// Fortify Suppression:` comment with the same CWE at or near the flagged line.
+3. **Git history check**: Run `git log --oneline -5 -- <file>` to see if a recent commit already addressed this CWE.
+
+| Check | Result | Action |
+|-------|--------|--------|
+| Code already uses secure pattern | Already fixed | Report as **Already Remediated** — skip fix |
+| Suppression comment exists with valid justification | Already suppressed | Report as **Suppressed (FP)** — skip fix |
+| Recent commit message references this CWE/category | Likely fixed | Verify the fix is correct, then report as **Already Remediated** |
+| None of the above | Not yet fixed | Proceed to Step 1 |
 
 ### Step 1: Parse the Finding
 - Extract: **Category** (e.g., SQL Injection), **CWE** (e.g., CWE-89), **Severity** (Critical/High/Medium/Low), **Fortify Priority Order** (if provided), **File**, **Line**, **Source** (tainted input origin), **Sink** (dangerous operation).

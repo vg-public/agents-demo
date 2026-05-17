@@ -83,4 +83,4 @@ class <Service>ImplTest {
 - Test **happy paths**, **error paths**, **edge cases**, and **boundary conditions**
 - Use `@ParameterizedTest` with `@CsvSource` or `@MethodSource` for repetitive validation scenarios
 - Test data should use realistic values, not `"test"` or `"foo"`
-- Never use `@SpringBootTest` — this is a pure unit test with mocks
+- Never use `@SpringBootTest` — this is a pure unit test with mocks- **Never use real PII** in test data — use synthetic values (e.g., `John Doe`, `test@example.com`, `555-0100`)

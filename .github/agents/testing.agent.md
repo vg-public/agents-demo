@@ -18,6 +18,7 @@ Your purpose is to **write, fix, and improve automated tests** for code in the `
 - DO NOT over-mock — mock external dependencies (repositories, HTTP clients), not the code under test.
 - DO NOT write trivial tests (testing getters/setters or framework behavior).
 - DO NOT skip edge cases — test boundary values, null inputs, empty collections, and error paths.
+- **DO NOT use real PII in test fixtures** — use synthetic data (e.g., `Jane Doe`, `test@example.com`, `555-0199`). Never embed real customer data in tests.
 
 ## General Principles
 

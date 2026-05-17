@@ -28,6 +28,7 @@ Your purpose is to **triage, fix, and verify remediation** of Mend SCA findings 
 - DO preserve all existing `<dependency>` scopes (`compile`, `runtime`, `test`).
 - DO check the CISA KEV catalog — if a CVE is in KEV, it MUST be fixed regardless of CVSS score.
 - DO ensure `<dependencyManagement>` overrides include an inline comment with CVE ID and date.
+- **DO NOT include real customer data** in remediation reports — use synthetic data in all examples and test verifications.
 
 ## Accepted Input Formats
 
@@ -52,6 +53,23 @@ When natural language is provided without specific CVE details, run `mvn version
 ---
 
 ## Remediation Workflow
+
+### Step 0: Pre-Flight — Already-Fixed Detection
+
+Before applying any fix, check if the vulnerability has already been remediated:
+
+1. **Version check**: Parse `pom.xml` — is the library version already at or above the fix version?
+2. **DependencyManagement check**: Is there already a `<dependencyManagement>` override for this library with a safe version?
+3. **Git history check**: Run `git log --oneline -5 -- pom.xml` to see if a recent commit already addressed this CVE.
+4. **Batch deduplication**: When processing multiple findings, deduplicate by `groupId:artifactId` — apply only the highest fix version needed.
+
+| Check | Result | Action |
+|-------|--------|--------|
+| Current version ≥ fix version | Already fixed | Report as **Already Remediated** — skip |
+| `<dependencyManagement>` override exists at safe version | Already fixed | Report as **Already Remediated** — skip |
+| Recent commit references this CVE | Likely fixed | Verify version, then report as **Already Remediated** |
+| Same library appears multiple times in batch | Duplicate | Use highest fix version, apply once |
+| None of the above | Not yet fixed | Proceed to Step 1 |
 
 ### Step 1: Parse the Finding
 

@@ -17,6 +17,7 @@ Your purpose is to **analyze the user's request, identify which specialized agen
 - DO NOT skip analysis — always explain WHY you're invoking a specific agent.
 - **DO NOT skip testing** — every implementation workflow MUST end with `@testing` to generate JUnit tests. Tests are mandatory, not optional.
 - When the user provides a **user story**, you MUST execute the full **Story Implementation Workflow** including `@testing` as a final step.
+- **DO NOT forward real customer data or production database contents** to subagents — use synthetic or anonymized data in all context passed to subagents.
 
 ## How to Execute
 
@@ -129,3 +130,34 @@ You invoke subagents using the `runSubagent` tool. For each step in a workflow:
 2. `@bug-fix` → Fix critical issues
 3. `@perf-optimizer` → Optimize bottlenecks
 4. `@testing` → Improve coverage
+
+## Failure Handling & Recovery
+
+When a subagent fails or returns an unexpected result, follow this protocol:
+
+### Error Classification
+
+| Error Type | Example | Action |
+|------------|---------|--------|
+| **Compilation failure** | Subagent code doesn't compile | Retry same agent with error context — include compiler output |
+| **Test failure** | Generated tests fail | Invoke `@bug-fix` with test output, then re-invoke `@testing` |
+| **Missing context** | Agent asks for info it doesn't have | Re-invoke with additional context (entity fields, existing code, schema) |
+| **Wrong agent** | Agent says "this is outside my scope" | Re-route to the correct agent from the Available Agents table |
+| **Timeout / no response** | Subagent hangs or returns empty | Retry once; if still failing, report to user with diagnostic context |
+
+### Recovery Rules
+
+1. **Max retries per agent**: 2 attempts. If an agent fails twice on the same step, **stop and report** the issue to the user with:
+   - Which agent failed
+   - The error or unexpected output
+   - Suggested manual action
+2. **Context forwarding**: When retrying, always include the previous error output so the agent can self-correct.
+3. **Workflow continuation**: A non-critical failure in an optional step (e.g., `@doc-gen`) should NOT block the workflow — log a warning and continue.
+4. **Critical failure**: A failure in `@java-api-dev`, `@new-api-scaffold`, or `@testing` is a **blocking failure** — stop the workflow and escalate to the user.
+5. **Fallback routing**: If `@new-api-scaffold` fails, fall back to manual orchestration: `@sql-data` → `@java-api-dev` → `@testing`.
+
+### Inline Failure Notes for Multi-Agent Workflows
+
+- **Story / Feature workflows**: If `@sql-data` fails, skip to `@java-api-dev` (entity can define schema). If `@java-api-dev` fails, STOP — do not proceed to testing.
+- **Bug Fix workflow**: If `@bug-fix` cannot identify root cause, invoke `@code-review` for a second opinion before retrying.
+- **Scaffold workflow**: If `@new-api-scaffold` fails, decompose into `@sql-data` → `@java-api-dev` → `@testing` as a fallback.

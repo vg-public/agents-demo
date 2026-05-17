@@ -97,3 +97,4 @@ void shouldCreateProduct() throws Exception {
 - For error responses, assert RFC 7807 ProblemDetail shape: `$.type`, `$.title`, `$.status`, `$.detail`
 - Use `given(...).willReturn(...)` (BDDMockito) for readability
 - Use `given(...).willThrow(...)` for error path tests
+- **Never use real PII** in test data — use synthetic values (e.g., `John Doe`, `test@example.com`, `555-0100`)

@@ -96,3 +96,4 @@ Maps to tests:
 - Every acceptance criterion must have at least one test
 - Follow existing code patterns in the project — don't introduce new conventions
 - If the story requires changes to existing endpoints, verify backward compatibility
+- **Never use real PII** in generated code, test data, or documentation — always use synthetic data

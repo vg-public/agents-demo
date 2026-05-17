@@ -92,3 +92,4 @@ COMMIT;
 - Use function-based indexes for case-insensitive search (`UPPER(NAME)`)
 - Save SQL scripts to `src/main/resources/db/` directory
 - Each script should be idempotent or run exactly once — no conditional logic
+- **Never use real customer data** in INSERT/seed scripts — use synthetic test data (e.g., `Jane Doe`, `jane.doe@example.com`)

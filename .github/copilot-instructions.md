@@ -135,6 +135,14 @@ All code generated or modified by agents and prompts **MUST** comply with these 
 - Preserve existing tests — add new tests, never delete passing tests
 - If a fix requires modifying existing code, explain the impact and get confirmation
 
+### PII & Data Protection Guardrail
+- **DO NOT use real customer data** in generated code, test fixtures, seed scripts, or documentation examples — always use synthetic data (e.g., `john.doe@example.com`, `555-0100`)
+- **DO NOT log PII in plaintext** — mask sensitive fields in log output: email → `j***@e***.com`, SSN → `***-**-1234`
+- **DO NOT expose PII in API error responses** — exception messages and ProblemDetail must never contain user data
+- **DO NOT send production database contents or real customer data as agent context** — use anonymized or synthetic data
+- **DO encrypt PII at rest** — use `@ColumnTransformer` with Oracle TDE or application-level AES-256-GCM for sensitive columns
+- **DO validate and sanitize** all PII inputs at the controller layer with Bean Validation constraints
+
 ## Available Agents
 
 | Agent | Purpose | Output |

@@ -137,3 +137,4 @@ class ProductRepositoryTest {
 - Use `@Nested` classes grouped by method being tested
 - Use descriptive `@DisplayName` on every test
 - Clean assertions with AssertJ — no JUnit `assertEquals`
+- **Never use real PII** in test entity data — use synthetic values (e.g., `Jane Doe`, `test@example.com`)

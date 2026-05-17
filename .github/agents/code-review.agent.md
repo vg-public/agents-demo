@@ -27,6 +27,7 @@ You support three modes:
 - **DO NOT flag issues in existing working code** — when using Git diff mode, only review new/changed lines.
 - DO preserve existing tests — add security-specific tests when fixing security issues.
 - DO verify fixes compile (`mvn compile`) and pass tests (`mvn test`) after applying changes.
+- **DO flag any PII logged without masking as CRITICAL** — passwords, emails, SSNs, tokens must never appear in plaintext log output.
 
 ## Interactive Review-Then-Fix Workflow
 

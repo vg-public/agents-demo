@@ -37,6 +37,8 @@ src/test/java/com/<group>/<artifact>/
 
 ## Scaffolding Rules
 
+> **PII Guardrail**: DO NOT include real PII in seed data, sample fixtures, or code examples — always use synthetic test data (e.g., `John Doe`, `test@example.com`).
+
 ### 1. Entity
 ```java
 @Entity

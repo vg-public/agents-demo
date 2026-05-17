@@ -22,6 +22,7 @@ Your purpose is to **write, modify, and refactor Java backend code** in the `src
 - DO NOT use `FetchType.EAGER` on collections — use `JOIN FETCH` or `@EntityGraph` when needed.
 - DO NOT use `spring.jpa.hibernate.ddl-auto=update` — use `validate` to verify entity mappings against the existing Oracle schema.
 - DO NOT return `Optional` from controllers — unwrap in the service layer.
+- **DO NOT use real PII** in code examples, sample data, or log statements — use synthetic data (e.g., `john.doe@example.com`, `555-0100`). Mask PII in log output.
 
 ## Approach
 

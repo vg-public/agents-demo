@@ -167,3 +167,29 @@ Reusable `.prompt.md` files in `.github/prompts/` for common day-to-day tasks. I
 | `generate-pr-description` | Generate structured PR description from changes |
 | `generate-commit-message` | Conventional Commits formatted commit message |
 | `implement-story` | End-to-end user story implementation across all layers |
+
+---
+
+## Cross-Cutting Guardrails
+
+These guardrails apply across **all agents** and are enforced via `copilot-instructions.md` and individual agent Constraints sections.
+
+### PII & Data Protection
+- All agents must use **synthetic data** — never real customer data in code, tests, seed scripts, docs, or agent context.
+- PII fields must be **masked in logs** and **encrypted at rest**.
+- Error responses must never contain user data.
+- Enforced in: `copilot-instructions.md`, all 12 agent `.agent.md` files, 6 prompt templates.
+
+### Error Handling & Failure Recovery
+- `@dev-orchestrator` implements a **Failure Handling & Recovery** protocol with error classification, max 2 retries per agent, and fallback routing.
+- Critical failures (in `@java-api-dev`, `@new-api-scaffold`, `@testing`) block the workflow and escalate to the user.
+- Non-critical failures (in `@doc-gen`) are logged as warnings without blocking.
+
+### Idempotency in Fix Agents
+- `@fortify-fix` and `@mend-fix` include a **Step 0: Pre-Flight — Already-Fixed Detection** that checks whether the vulnerability is already remediated before applying a fix.
+- Prevents duplicate patches, redundant version bumps, and unnecessary code churn.
+
+### Agent Evaluation Framework
+- Manual evaluation checklist in [`.github/agent-evals/`](agent-evals/README.md) with test scenarios per agent.
+- Run evaluations after modifying any agent, skill, prompt, or `copilot-instructions.md`.
+- Covers: correctness, constraint adherence, PII guardrail, scope discipline, workflow completeness, idempotency.
