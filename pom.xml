@@ -106,7 +106,7 @@
             <!-- Eclipse JDT formatter — supports configurable line length (300 chars for wide screens) -->
             <eclipse>
               <version>4.26</version>
-              <file>${project.basedir}/eclipse-java-formatter.xml</file>
+              <file>${project.basedir}/custom-java-formatter.xml</file>
             </eclipse>
 
             <!-- Trim trailing whitespace -->
