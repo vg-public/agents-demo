@@ -2,6 +2,7 @@ package com.epam.agents.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
@@ -18,10 +19,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -31,6 +34,7 @@ import com.epam.agents.dto.request.CreateProductRequest;
 import com.epam.agents.dto.request.UpdateProductRequest;
 import com.epam.agents.dto.response.ProductResponse;
 import com.epam.agents.exception.DuplicateResourceException;
+import com.epam.agents.exception.InvalidSearchCriteriaException;
 import com.epam.agents.exception.ResourceNotFoundException;
 import com.epam.agents.service.ProductService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -158,5 +162,67 @@ class ProductControllerTest {
         willThrow(new ResourceNotFoundException("Product", "id", 99L)).given(productService).delete(99L);
 
         mockMvc.perform(delete("/api/v1/products/99")).andExpect(status().isNotFound()).andExpect(jsonPath("$.title").value("Resource Not Found"));
+    }
+
+    // ─── GET /api/v1/products/search ────────────────────────────────────────
+
+    @Nested
+    class Search {
+
+        @Test
+        void search_shouldReturn200WithResults_whenNoFiltersProvided() throws Exception {
+            Page<ProductResponse> page = new PageImpl<>(List.of(productResponse));
+            given(productService.search(isNull(), isNull(), isNull(), any(Pageable.class))).willReturn(page);
+
+            mockMvc.perform(get("/api/v1/products/search")).andExpect(status().isOk()).andExpect(jsonPath("$.content[0].id").value(1)).andExpect(jsonPath("$.content[0].sku").value("TEST-001"));
+        }
+
+        @Test
+        void search_shouldReturn200WithResults_whenKeywordProvided() throws Exception {
+            Page<ProductResponse> page = new PageImpl<>(List.of(productResponse));
+            given(productService.search(eq("Widget"), isNull(), isNull(), any(Pageable.class))).willReturn(page);
+
+            mockMvc.perform(get("/api/v1/products/search").param("keyword", "Widget")).andExpect(status().isOk()).andExpect(jsonPath("$.content[0].name").value("Test Widget"));
+        }
+
+        @Test
+        void search_shouldReturn200WithResults_whenPriceRangeProvided() throws Exception {
+            Page<ProductResponse> page = new PageImpl<>(List.of(productResponse));
+            given(productService.search(isNull(), eq(new BigDecimal("10.00")), eq(new BigDecimal("50.00")), any(Pageable.class))).willReturn(page);
+
+            mockMvc.perform(get("/api/v1/products/search").param("minPrice", "10.00").param("maxPrice", "50.00")).andExpect(status().isOk()).andExpect(jsonPath("$.content").isArray());
+        }
+
+        @Test
+        void search_shouldReturn200EmptyPage_whenNoProductsMatch() throws Exception {
+            given(productService.search(any(), any(), any(), any(Pageable.class))).willReturn(Page.empty());
+
+            mockMvc.perform(get("/api/v1/products/search").param("keyword", "nonexistent")).andExpect(status().isOk()).andExpect(jsonPath("$.content").isEmpty());
+        }
+
+        @Test
+        void search_shouldReturn400_whenMinPriceGreaterThanMaxPrice() throws Exception {
+            given(productService.search(isNull(), eq(new BigDecimal("100.00")), eq(new BigDecimal("50.00")), any(Pageable.class))).willThrow(new InvalidSearchCriteriaException("minPrice must not be greater than maxPrice"));
+
+            mockMvc.perform(get("/api/v1/products/search").param("minPrice", "100.00").param("maxPrice", "50.00")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.title").value("Invalid Search Criteria")).andExpect(jsonPath("$.errorCode").value("INVALID_SEARCH_CRITERIA"));
+        }
+
+        @Test
+        void search_shouldReturn400_whenMinPriceIsNegative() throws Exception {
+            mockMvc.perform(get("/api/v1/products/search").param("minPrice", "-1.00")).andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void search_shouldReturn400_whenMaxPriceIsZero() throws Exception {
+            mockMvc.perform(get("/api/v1/products/search").param("maxPrice", "0.00")).andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void search_shouldUseSortParameter_whenProvided() throws Exception {
+            Page<ProductResponse> page = new PageImpl<>(List.of(productResponse));
+            given(productService.search(isNull(), isNull(), isNull(), any(Pageable.class))).willReturn(page);
+
+            mockMvc.perform(get("/api/v1/products/search").param("sort", "price,desc")).andExpect(status().isOk());
+        }
     }
 }

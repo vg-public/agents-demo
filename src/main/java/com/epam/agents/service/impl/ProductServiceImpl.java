@@ -1,9 +1,12 @@
 package com.epam.agents.service.impl;
 
+import java.math.BigDecimal;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,9 +15,11 @@ import com.epam.agents.dto.request.UpdateProductRequest;
 import com.epam.agents.dto.response.ProductResponse;
 import com.epam.agents.entity.Product;
 import com.epam.agents.exception.DuplicateResourceException;
+import com.epam.agents.exception.InvalidSearchCriteriaException;
 import com.epam.agents.exception.ResourceNotFoundException;
 import com.epam.agents.mapper.ProductMapper;
 import com.epam.agents.repository.ProductRepository;
+import com.epam.agents.repository.ProductSpecification;
 import com.epam.agents.service.ProductService;
 
 /**
@@ -88,6 +93,17 @@ public class ProductServiceImpl implements ProductService {
         Product updated = productRepository.save(product);
         log.info("Updated product id: {}", id);
         return productMapper.toResponse(updated);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> search(String keyword, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
+        log.debug("Searching products: keyword={}, minPrice={}, maxPrice={}", keyword, minPrice, maxPrice);
+        if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+            throw new InvalidSearchCriteriaException("minPrice must not be greater than maxPrice");
+        }
+        Specification<Product> spec = Specification.where(ProductSpecification.nameContains(keyword)).and(ProductSpecification.priceGreaterThanOrEqual(minPrice)).and(ProductSpecification.priceLessThanOrEqual(maxPrice));
+        return productRepository.findAll(spec, pageable).map(productMapper::toResponse);
     }
 
     @Override

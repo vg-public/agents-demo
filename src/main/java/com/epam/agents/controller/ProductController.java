@@ -1,15 +1,18 @@
 package com.epam.agents.controller;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.Set;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,6 +44,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api/v1/products")
 @Tag(name = "Products", description = "Product catalog CRUD operations")
+@Validated
 public class ProductController {
 
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "name", "price", "sku", "createdAt");
@@ -56,6 +60,36 @@ public class ProductController {
      */
     public ProductController(ProductService productService) {
         this.productService = productService;
+    }
+
+    /**
+     * Searches products by optional keyword and price range filters.
+     *
+     * @param keyword
+     *            case-insensitive partial name match; omit to match all
+     * @param minPrice
+     *            lower price bound (inclusive, must be &gt; 0); omit for no lower bound
+     * @param maxPrice
+     *            upper price bound (inclusive, must be &gt; 0); omit for no upper bound
+     * @param page
+     *            zero-based page index (default 0)
+     * @param size
+     *            page size (default 20)
+     * @param sort
+     *            sort expression in {@code field,direction} format (default "name,asc")
+     * @return HTTP 200 with a paginated list of matching products
+     */
+    @GetMapping("/search")
+    @Operation(summary = "Search products by keyword and price range")
+    public ResponseEntity<Page<ProductResponse>> search(@RequestParam(required = false) String keyword, @RequestParam(required = false) @DecimalMin(value = "0.01", message = "minPrice must be greater than 0") BigDecimal minPrice,
+            @RequestParam(required = false) @DecimalMin(value = "0.01", message = "maxPrice must be greater than 0") BigDecimal maxPrice, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size, @RequestParam(defaultValue = "name,asc") String sort) {
+
+        String[] sortParts = sort.split(",", 2);
+        String sortField = ALLOWED_SORT_FIELDS.contains(sortParts[0]) ? sortParts[0] : "name";
+        Sort.Direction direction = sortParts.length > 1 && sortParts[1].equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+
+        return ResponseEntity.ok(productService.search(keyword, minPrice, maxPrice, pageable));
     }
 
     /**

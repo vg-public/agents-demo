@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -21,12 +22,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import com.epam.agents.dto.request.CreateProductRequest;
 import com.epam.agents.dto.request.UpdateProductRequest;
 import com.epam.agents.dto.response.ProductResponse;
 import com.epam.agents.entity.Product;
 import com.epam.agents.exception.DuplicateResourceException;
+import com.epam.agents.exception.InvalidSearchCriteriaException;
 import com.epam.agents.exception.ResourceNotFoundException;
 import com.epam.agents.mapper.ProductMapper;
 import com.epam.agents.repository.ProductRepository;
@@ -189,6 +192,79 @@ class ProductServiceImplTest {
 
         assertThatThrownBy(() -> productService.delete(99L)).isInstanceOf(ResourceNotFoundException.class).hasMessageContaining("Product").hasMessageContaining("99");
 
-        then(productRepository).should(never()).delete(any());
+        then(productRepository).should(never()).delete(any(Product.class));
+    }
+
+    // ─── search ─────────────────────────────────────────────────────────────
+
+    @Nested
+    class Search {
+
+        private final Pageable pageable = PageRequest.of(0, 20);
+
+        @Test
+        void search_shouldReturnMatchingProducts_whenAllFiltersProvided() {
+            Page<Product> productPage = new PageImpl<>(List.of(product));
+            given(productRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(productPage);
+            given(productMapper.toResponse(product)).willReturn(productResponse);
+
+            Page<ProductResponse> result = productService.search("Widget", new BigDecimal("10.00"), new BigDecimal("50.00"), pageable);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().get(0).name()).isEqualTo("Test Widget");
+        }
+
+        @Test
+        void search_shouldReturnAllProducts_whenNoFiltersProvided() {
+            Page<Product> productPage = new PageImpl<>(List.of(product));
+            given(productRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(productPage);
+            given(productMapper.toResponse(product)).willReturn(productResponse);
+
+            Page<ProductResponse> result = productService.search(null, null, null, pageable);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getContent()).hasSize(1);
+        }
+
+        @Test
+        void search_shouldReturnEmptyPage_whenNoProductsMatch() {
+            given(productRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(Page.empty());
+
+            Page<ProductResponse> result = productService.search("nonexistent", null, null, pageable);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getContent()).isEmpty();
+        }
+
+        @Test
+        void search_shouldThrowInvalidSearchCriteriaException_whenMinPriceGreaterThanMaxPrice() {
+            assertThatThrownBy(() -> productService.search(null, new BigDecimal("100.00"), new BigDecimal("50.00"), pageable)).isInstanceOf(InvalidSearchCriteriaException.class).hasMessageContaining("minPrice must not be greater than maxPrice");
+
+            then(productRepository).should(never()).findAll(any(Specification.class), any(Pageable.class));
+        }
+
+        @Test
+        void search_shouldNotThrow_whenMinPriceEqualsMaxPrice() {
+            BigDecimal samePrice = new BigDecimal("25.00");
+            Page<Product> productPage = new PageImpl<>(List.of(product));
+            given(productRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(productPage);
+            given(productMapper.toResponse(product)).willReturn(productResponse);
+
+            Page<ProductResponse> result = productService.search(null, samePrice, samePrice, pageable);
+
+            assertThat(result).isNotNull();
+        }
+
+        @Test
+        void search_shouldApplyOnlyKeywordFilter_whenPricesAreNull() {
+            Page<Product> productPage = new PageImpl<>(List.of(product));
+            given(productRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(productPage);
+            given(productMapper.toResponse(product)).willReturn(productResponse);
+
+            Page<ProductResponse> result = productService.search("Widget", null, null, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+        }
     }
 }
