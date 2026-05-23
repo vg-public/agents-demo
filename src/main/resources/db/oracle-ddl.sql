@@ -27,6 +27,16 @@ CREATE TABLE PRODUCTS (
 -- Index on SKU for fast lookups
 CREATE UNIQUE INDEX IDX_PRODUCTS_SKU ON PRODUCTS (SKU);
 
+-- ============================================================
+-- EPIC-001-S006: Soft archive support
+-- ============================================================
+ALTER TABLE PRODUCTS
+    ADD ARCHIVED NUMBER(1) DEFAULT 0 NOT NULL
+    CONSTRAINT CK_PRODUCTS_ARCHIVED CHECK (ARCHIVED IN (0, 1));
+
+-- Index for efficient filtering of active products
+CREATE INDEX IDX_PRODUCTS_ARCHIVED ON PRODUCTS (ARCHIVED);
+
 -- Comments
 COMMENT ON TABLE PRODUCTS IS 'Product catalog entries';
 COMMENT ON COLUMN PRODUCTS.ID IS 'Surrogate primary key from PRODUCT_SEQ';
@@ -35,3 +45,4 @@ COMMENT ON COLUMN PRODUCTS.PRICE IS 'Unit price (max 10 integer + 2 decimal digi
 COMMENT ON COLUMN PRODUCTS.SKU IS 'Stock Keeping Unit — uppercase alphanumeric with hyphens';
 COMMENT ON COLUMN PRODUCTS.CREATED_AT IS 'Row creation timestamp (set by @PrePersist)';
 COMMENT ON COLUMN PRODUCTS.UPDATED_AT IS 'Last update timestamp (set by @PreUpdate)';
+COMMENT ON COLUMN PRODUCTS.ARCHIVED IS '0 = active, 1 = archived (soft-deleted)';

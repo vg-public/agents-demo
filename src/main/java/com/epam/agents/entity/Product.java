@@ -23,7 +23,7 @@ import jakarta.persistence.Table;
  * </p>
  */
 @Entity
-@Table(name = "PRODUCTS", indexes = {@Index(name = "IDX_PRODUCTS_SKU", columnList = "SKU", unique = true)})
+@Table(name = "PRODUCTS", indexes = {@Index(name = "IDX_PRODUCTS_SKU", columnList = "SKU", unique = true), @Index(name = "IDX_PRODUCTS_ARCHIVED", columnList = "ARCHIVED")})
 public class Product {
 
     @Id
@@ -40,6 +40,9 @@ public class Product {
 
     @Column(name = "SKU", nullable = false, length = 50, unique = true)
     private String sku;
+
+    @Column(name = "ARCHIVED", nullable = false)
+    private boolean archived = false;
 
     @Column(name = "CREATED_AT", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -108,5 +111,13 @@ public class Product {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public boolean isArchived() {
+        return archived;
+    }
+
+    public void setArchived(boolean archived) {
+        this.archived = archived;
     }
 }

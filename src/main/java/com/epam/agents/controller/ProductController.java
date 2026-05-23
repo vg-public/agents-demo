@@ -96,6 +96,36 @@ public class ProductController {
     }
 
     /**
+     * Retrieves a single product by its SKU.
+     *
+     * <p>
+     * Returns archived products — explicit SKU lookup always resolves.
+     * </p>
+     *
+     * @param sku
+     *            the product's stock-keeping unit
+     * @return HTTP 200 with the product, or HTTP 404 if not found
+     */
+    @GetMapping("/sku/{sku}")
+    @Operation(summary = "Get product by SKU")
+    public ResponseEntity<ProductResponse> getBySku(@PathVariable String sku) {
+        return ResponseEntity.ok(productService.getBySku(sku));
+    }
+
+    /**
+     * Soft-archives a product by SKU, setting {@code archived = true}.
+     *
+     * @param sku
+     *            the SKU of the product to archive
+     * @return HTTP 200 with the updated product, HTTP 404 if not found, HTTP 409 if already archived
+     */
+    @PatchMapping("/sku/{sku}/archive")
+    @Operation(summary = "Archive (soft-delete) a product by SKU")
+    public ResponseEntity<ProductResponse> archive(@PathVariable String sku) {
+        return ResponseEntity.ok(productService.archive(sku));
+    }
+
+    /**
      * Retrieves a single product by its surrogate ID.
      *
      * @param id

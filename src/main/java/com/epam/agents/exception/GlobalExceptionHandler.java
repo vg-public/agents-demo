@@ -66,6 +66,23 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles {@link AlreadyArchivedException} — returns HTTP 409.
+     *
+     * @param ex
+     *            the exception
+     * @return a ProblemDetail with status 409
+     */
+    @ExceptionHandler(AlreadyArchivedException.class)
+    public ProblemDetail handleAlreadyArchived(AlreadyArchivedException ex) {
+        log.warn("Already archived: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setTitle("Already Archived");
+        problem.setProperty(ERROR_CODE_PROPERTY, ex.getErrorCode());
+        problem.setProperty(TIMESTAMP_PROPERTY, Instant.now());
+        return problem;
+    }
+
+    /**
      * Handles {@link InvalidSearchCriteriaException} — returns HTTP 400.
      *
      * @param ex

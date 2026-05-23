@@ -106,4 +106,32 @@ public interface ProductService {
      * @return a summary with updated count, not-found SKUs, and invalid SKUs
      */
     BulkPriceUpdateResponse bulkUpdatePrices(BulkPriceUpdateRequest request);
+
+    /**
+     * Retrieves a single product by its SKU.
+     *
+     * <p>
+     * Returns archived products — explicit SKU lookup always resolves.
+     * </p>
+     *
+     * @param sku
+     *            the product's stock-keeping unit identifier
+     * @return the product as a response DTO
+     * @throws com.epam.agents.exception.ResourceNotFoundException
+     *             if no product with the given SKU exists
+     */
+    ProductResponse getBySku(String sku);
+
+    /**
+     * Soft-archives a product by marking it as archived.
+     *
+     * @param sku
+     *            the SKU of the product to archive
+     * @return the updated product as a response DTO
+     * @throws com.epam.agents.exception.ResourceNotFoundException
+     *             if no product with the given SKU exists
+     * @throws com.epam.agents.exception.AlreadyArchivedException
+     *             if the product is already archived
+     */
+    ProductResponse archive(String sku);
 }

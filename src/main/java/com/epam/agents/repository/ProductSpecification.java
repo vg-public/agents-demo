@@ -67,4 +67,13 @@ public final class ProductSpecification {
             return cb.lessThanOrEqualTo(root.get("price"), maxPrice);
         };
     }
+
+    /**
+     * Filters only active (non-archived) products.
+     *
+     * @return a {@link Specification} that excludes archived products
+     */
+    public static Specification<Product> isActive() {
+        return (root, query, cb) -> cb.isFalse(root.get("archived"));
+    }
 }

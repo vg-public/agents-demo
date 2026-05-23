@@ -198,4 +198,56 @@ class ProductSpecificationTest {
             assertThat(results).hasSize(2);
         }
     }
+
+    @Nested
+    class IsActive {
+
+        @Test
+        void isActive_shouldReturnOnlyNonArchivedProducts() {
+            widgetCheap.setArchived(true);
+            entityManager.persistAndFlush(widgetCheap);
+
+            Specification<Product> spec = ProductSpecification.isActive();
+
+            List<Product> results = productRepository.findAll(spec);
+
+            assertThat(results).hasSize(1);
+            assertThat(results.get(0).getSku()).isEqualTo("GDG-001");
+        }
+
+        @Test
+        void isActive_shouldReturnAllProducts_whenNoneAreArchived() {
+            Specification<Product> spec = ProductSpecification.isActive();
+
+            List<Product> results = productRepository.findAll(spec);
+
+            assertThat(results).hasSize(2);
+        }
+
+        @Test
+        void isActive_shouldReturnEmpty_whenAllProductsAreArchived() {
+            widgetCheap.setArchived(true);
+            gadgetExpensive.setArchived(true);
+            entityManager.persistAndFlush(widgetCheap);
+            entityManager.persistAndFlush(gadgetExpensive);
+
+            Specification<Product> spec = ProductSpecification.isActive();
+
+            List<Product> results = productRepository.findAll(spec);
+
+            assertThat(results).isEmpty();
+        }
+
+        @Test
+        void isActive_combinedWithNameFilter_shouldOnlyReturnActiveMatchingProducts() {
+            widgetCheap.setArchived(true);
+            entityManager.persistAndFlush(widgetCheap);
+
+            Specification<Product> spec = Specification.where(ProductSpecification.isActive()).and(ProductSpecification.nameContains("widget"));
+
+            List<Product> results = productRepository.findAll(spec);
+
+            assertThat(results).isEmpty();
+        }
+    }
 }

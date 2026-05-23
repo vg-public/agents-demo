@@ -14,10 +14,12 @@ import java.time.LocalDateTime;
  *            human-readable product name
  * @param price
  *            unit price
+ * @param archived
+ *            whether the product has been soft-archived
  * @param createdAt
  *            timestamp when the product was created
  * @param updatedAt
  *            timestamp of the last update
  */
-public record ProductResponse(Long id, String sku, String name, BigDecimal price, LocalDateTime createdAt, LocalDateTime updatedAt) {
+public record ProductResponse(Long id, String sku, String name, BigDecimal price, boolean archived, LocalDateTime createdAt, LocalDateTime updatedAt) {
 }

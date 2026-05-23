@@ -22,6 +22,7 @@ import com.epam.agents.dto.request.UpdateProductRequest;
 import com.epam.agents.dto.response.BulkPriceUpdateResponse;
 import com.epam.agents.dto.response.ProductResponse;
 import com.epam.agents.entity.Product;
+import com.epam.agents.exception.AlreadyArchivedException;
 import com.epam.agents.exception.DuplicateResourceException;
 import com.epam.agents.exception.InvalidSearchCriteriaException;
 import com.epam.agents.exception.ResourceNotFoundException;
@@ -71,7 +72,8 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public Page<ProductResponse> getAll(Pageable pageable) {
         log.debug("Fetching all products, page: {}", pageable);
-        return productRepository.findAll(pageable).map(productMapper::toResponse);
+        Specification<Product> spec = Specification.where(ProductSpecification.isActive());
+        return productRepository.findAll(spec, pageable).map(productMapper::toResponse);
     }
 
     @Override
@@ -110,7 +112,7 @@ public class ProductServiceImpl implements ProductService {
         if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
             throw new InvalidSearchCriteriaException("minPrice must not be greater than maxPrice");
         }
-        Specification<Product> spec = Specification.where(ProductSpecification.nameContains(keyword)).and(ProductSpecification.priceGreaterThanOrEqual(minPrice)).and(ProductSpecification.priceLessThanOrEqual(maxPrice));
+        Specification<Product> spec = Specification.where(ProductSpecification.isActive()).and(ProductSpecification.nameContains(keyword)).and(ProductSpecification.priceGreaterThanOrEqual(minPrice)).and(ProductSpecification.priceLessThanOrEqual(maxPrice));
         return productRepository.findAll(spec, pageable).map(productMapper::toResponse);
     }
 
@@ -121,6 +123,28 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Product", "id", id));
         productRepository.delete(product);
         log.info("Deleted product id: {}", id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProductResponse getBySku(String sku) {
+        log.debug("Fetching product by sku: {}", sku);
+        Product product = productRepository.findBySku(sku).orElseThrow(() -> new ResourceNotFoundException("Product", "sku", sku));
+        return productMapper.toResponse(product);
+    }
+
+    @Override
+    @Transactional
+    public ProductResponse archive(String sku) {
+        log.info("Archiving product with sku: {}", sku);
+        Product product = productRepository.findBySku(sku).orElseThrow(() -> new ResourceNotFoundException("Product", "sku", sku));
+        if (product.isArchived()) {
+            throw new AlreadyArchivedException(sku);
+        }
+        product.setArchived(true);
+        Product saved = productRepository.save(product);
+        log.info("Archived product with sku: {}", sku);
+        return productMapper.toResponse(saved);
     }
 
     @Override

@@ -37,6 +37,7 @@ import com.epam.agents.dto.request.PriceUpdateEntry;
 import com.epam.agents.dto.request.UpdateProductRequest;
 import com.epam.agents.dto.response.BulkPriceUpdateResponse;
 import com.epam.agents.dto.response.ProductResponse;
+import com.epam.agents.exception.AlreadyArchivedException;
 import com.epam.agents.exception.DuplicateResourceException;
 import com.epam.agents.exception.InvalidSearchCriteriaException;
 import com.epam.agents.exception.ResourceNotFoundException;
@@ -67,7 +68,7 @@ class ProductControllerTest {
 
     @BeforeEach
     void setUp() {
-        productResponse = new ProductResponse(1L, "TEST-001", "Test Widget", new BigDecimal("29.99"), LocalDateTime.of(2025, 1, 1, 10, 0), LocalDateTime.of(2025, 1, 1, 10, 0));
+        productResponse = new ProductResponse(1L, "TEST-001", "Test Widget", new BigDecimal("29.99"), false, LocalDateTime.of(2025, 1, 1, 10, 0), LocalDateTime.of(2025, 1, 1, 10, 0));
     }
 
     // ─── GET /api/v1/products/{id} ──────────────────────────────────────────
@@ -282,5 +283,54 @@ class ProductControllerTest {
 
             mockMvc.perform(patch("/api/v1/products/prices").contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.title").value("Validation Failed"));
         }
+    }
+
+    // ─── GET /api/v1/products/sku/{sku} ─────────────────────────────────────
+
+    @Test
+    void getBySku_shouldReturn200_whenProductExists() throws Exception {
+        given(productService.getBySku("TEST-001")).willReturn(productResponse);
+
+        mockMvc.perform(get("/api/v1/products/sku/TEST-001")).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(1)).andExpect(jsonPath("$.sku").value("TEST-001")).andExpect(jsonPath("$.archived").value(false));
+    }
+
+    @Test
+    void getBySku_shouldReturn404_whenSkuNotFound() throws Exception {
+        given(productService.getBySku("UNKNOWN")).willThrow(new ResourceNotFoundException("Product", "sku", "UNKNOWN"));
+
+        mockMvc.perform(get("/api/v1/products/sku/UNKNOWN")).andExpect(status().isNotFound()).andExpect(jsonPath("$.title").value("Resource Not Found")).andExpect(jsonPath("$.errorCode").value("RESOURCE_NOT_FOUND"));
+    }
+
+    @Test
+    void getBySku_shouldReturn200_whenProductIsArchived() throws Exception {
+        ProductResponse archivedResponse = new ProductResponse(1L, "TEST-001", "Test Widget", new BigDecimal("29.99"), true, LocalDateTime.of(2025, 1, 1, 10, 0), LocalDateTime.of(2026, 5, 23, 10, 0));
+        given(productService.getBySku("TEST-001")).willReturn(archivedResponse);
+
+        mockMvc.perform(get("/api/v1/products/sku/TEST-001")).andExpect(status().isOk()).andExpect(jsonPath("$.archived").value(true));
+    }
+
+    // ─── PATCH /api/v1/products/sku/{sku}/archive ────────────────────────────
+
+    @Test
+    void archive_shouldReturn200_whenProductIsActiveAndExists() throws Exception {
+        ProductResponse archivedResponse = new ProductResponse(1L, "TEST-001", "Test Widget", new BigDecimal("29.99"), true, LocalDateTime.of(2025, 1, 1, 10, 0), LocalDateTime.of(2026, 5, 23, 10, 0));
+        given(productService.archive("TEST-001")).willReturn(archivedResponse);
+
+        mockMvc.perform(patch("/api/v1/products/sku/TEST-001/archive")).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(1)).andExpect(jsonPath("$.sku").value("TEST-001")).andExpect(jsonPath("$.archived").value(true));
+    }
+
+    @Test
+    void archive_shouldReturn404_whenSkuNotFound() throws Exception {
+        given(productService.archive("UNKNOWN")).willThrow(new ResourceNotFoundException("Product", "sku", "UNKNOWN"));
+
+        mockMvc.perform(patch("/api/v1/products/sku/UNKNOWN/archive")).andExpect(status().isNotFound()).andExpect(jsonPath("$.title").value("Resource Not Found")).andExpect(jsonPath("$.errorCode").value("RESOURCE_NOT_FOUND"));
+    }
+
+    @Test
+    void archive_shouldReturn409_whenProductIsAlreadyArchived() throws Exception {
+        given(productService.archive("TEST-001")).willThrow(new AlreadyArchivedException("TEST-001"));
+
+        mockMvc.perform(patch("/api/v1/products/sku/TEST-001/archive")).andExpect(status().isConflict()).andExpect(jsonPath("$.title").value("Already Archived")).andExpect(jsonPath("$.errorCode").value("ALREADY_ARCHIVED"))
+                .andExpect(jsonPath("$.detail").value("Product with sku 'TEST-001' is already archived"));
     }
 }

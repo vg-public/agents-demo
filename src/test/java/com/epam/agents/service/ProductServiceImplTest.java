@@ -31,6 +31,7 @@ import com.epam.agents.dto.request.UpdateProductRequest;
 import com.epam.agents.dto.response.BulkPriceUpdateResponse;
 import com.epam.agents.dto.response.ProductResponse;
 import com.epam.agents.entity.Product;
+import com.epam.agents.exception.AlreadyArchivedException;
 import com.epam.agents.exception.DuplicateResourceException;
 import com.epam.agents.exception.InvalidSearchCriteriaException;
 import com.epam.agents.exception.ResourceNotFoundException;
@@ -71,7 +72,7 @@ class ProductServiceImplTest {
         product.setCreatedAt(LocalDateTime.of(2025, 1, 1, 10, 0));
         product.setUpdatedAt(LocalDateTime.of(2025, 1, 1, 10, 0));
 
-        productResponse = new ProductResponse(1L, "TEST-001", "Test Widget", new BigDecimal("29.99"), product.getCreatedAt(), product.getUpdatedAt());
+        productResponse = new ProductResponse(1L, "TEST-001", "Test Widget", new BigDecimal("29.99"), false, product.getCreatedAt(), product.getUpdatedAt());
     }
 
     // ─── getById ────────────────────────────────────────────────────────────
@@ -102,7 +103,7 @@ class ProductServiceImplTest {
     void getAll_shouldReturnPageOfProductResponses() {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Product> productPage = new PageImpl<>(List.of(product), pageable, 1);
-        given(productRepository.findAll(pageable)).willReturn(productPage);
+        given(productRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(productPage);
         given(productMapper.toResponse(product)).willReturn(productResponse);
 
         Page<ProductResponse> result = productService.getAll(pageable);
@@ -116,7 +117,7 @@ class ProductServiceImplTest {
     @Test
     void getAll_shouldReturnEmptyPage_whenNoProductsExist() {
         Pageable pageable = PageRequest.of(0, 20);
-        given(productRepository.findAll(pageable)).willReturn(Page.empty(pageable));
+        given(productRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(Page.empty(pageable));
 
         Page<ProductResponse> result = productService.getAll(pageable);
 
@@ -367,5 +368,72 @@ class ProductServiceImplTest {
             assertThat(result.notFoundSkus()).containsExactly("UNKNOWN-SKU");
             assertThat(result.invalidSkus()).containsExactly("BAD-PRICE");
         }
+    }
+
+    // ─── getBySku ────────────────────────────────────────────────────────────
+
+    @Test
+    void getBySku_shouldReturnProductResponse_whenProductExists() {
+        given(productRepository.findBySku("TEST-001")).willReturn(Optional.of(product));
+        given(productMapper.toResponse(product)).willReturn(productResponse);
+
+        ProductResponse result = productService.getBySku("TEST-001");
+
+        assertThat(result).isNotNull();
+        assertThat(result.sku()).isEqualTo("TEST-001");
+    }
+
+    @Test
+    void getBySku_shouldThrowResourceNotFoundException_whenSkuDoesNotExist() {
+        given(productRepository.findBySku("UNKNOWN")).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.getBySku("UNKNOWN")).isInstanceOf(ResourceNotFoundException.class).hasMessageContaining("UNKNOWN");
+    }
+
+    @Test
+    void getBySku_shouldReturnArchivedProduct_whenProductIsArchived() {
+        product.setArchived(true);
+        ProductResponse archivedResponse = new ProductResponse(1L, "TEST-001", "Test Widget", new BigDecimal("29.99"), true, product.getCreatedAt(), product.getUpdatedAt());
+        given(productRepository.findBySku("TEST-001")).willReturn(Optional.of(product));
+        given(productMapper.toResponse(product)).willReturn(archivedResponse);
+
+        ProductResponse result = productService.getBySku("TEST-001");
+
+        assertThat(result.archived()).isTrue();
+    }
+
+    // ─── archive ─────────────────────────────────────────────────────────────
+
+    @Test
+    void archive_shouldSetArchivedTrue_whenProductExistsAndIsActive() {
+        ProductResponse archivedResponse = new ProductResponse(1L, "TEST-001", "Test Widget", new BigDecimal("29.99"), true, product.getCreatedAt(), product.getUpdatedAt());
+        given(productRepository.findBySku("TEST-001")).willReturn(Optional.of(product));
+        given(productRepository.save(product)).willReturn(product);
+        given(productMapper.toResponse(product)).willReturn(archivedResponse);
+
+        ProductResponse result = productService.archive("TEST-001");
+
+        assertThat(result.archived()).isTrue();
+        assertThat(product.isArchived()).isTrue();
+        then(productRepository).should().save(product);
+    }
+
+    @Test
+    void archive_shouldThrowResourceNotFoundException_whenSkuDoesNotExist() {
+        given(productRepository.findBySku("UNKNOWN")).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.archive("UNKNOWN")).isInstanceOf(ResourceNotFoundException.class).hasMessageContaining("UNKNOWN");
+
+        then(productRepository).should(never()).save(any());
+    }
+
+    @Test
+    void archive_shouldThrowAlreadyArchivedException_whenProductIsAlreadyArchived() {
+        product.setArchived(true);
+        given(productRepository.findBySku("TEST-001")).willReturn(Optional.of(product));
+
+        assertThatThrownBy(() -> productService.archive("TEST-001")).isInstanceOf(AlreadyArchivedException.class).hasMessageContaining("TEST-001").hasMessageContaining("already archived");
+
+        then(productRepository).should(never()).save(any());
     }
 }
