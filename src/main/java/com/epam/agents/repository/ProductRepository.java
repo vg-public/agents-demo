@@ -1,5 +1,6 @@
 package com.epam.agents.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -36,4 +37,13 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
      * @return an {@link Optional} containing the product, or empty if not found
      */
     Optional<Product> findBySku(String sku);
+
+    /**
+     * Finds all products whose SKU is in the given list. Used for bulk operations.
+     *
+     * @param skus
+     *            the list of SKUs to match
+     * @return products found; SKUs absent from the database are simply omitted
+     */
+    List<Product> findAllBySkuIn(List<String> skus);
 }

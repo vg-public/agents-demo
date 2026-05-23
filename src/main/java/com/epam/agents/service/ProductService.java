@@ -5,8 +5,10 @@ import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.epam.agents.dto.request.BulkPriceUpdateRequest;
 import com.epam.agents.dto.request.CreateProductRequest;
 import com.epam.agents.dto.request.UpdateProductRequest;
+import com.epam.agents.dto.response.BulkPriceUpdateResponse;
 import com.epam.agents.dto.response.ProductResponse;
 
 /**
@@ -89,4 +91,19 @@ public interface ProductService {
      *             if no product with the given ID exists
      */
     void delete(Long id);
+
+    /**
+     * Updates the price of multiple products in a single transaction.
+     *
+     * <p>
+     * Entries with a non-positive {@code newPrice} are collected in {@code invalidSkus}.
+     * Entries whose SKU is not found are collected in {@code notFoundSkus}.
+     * Neither condition causes an exception — they are reported in the response.
+     * </p>
+     *
+     * @param request
+     *            the validated bulk update request (1–100 entries)
+     * @return a summary with updated count, not-found SKUs, and invalid SKUs
+     */
+    BulkPriceUpdateResponse bulkUpdatePrices(BulkPriceUpdateRequest request);
 }

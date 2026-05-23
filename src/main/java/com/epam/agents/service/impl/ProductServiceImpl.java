@@ -1,6 +1,11 @@
 package com.epam.agents.service.impl;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,8 +15,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.epam.agents.dto.request.BulkPriceUpdateRequest;
 import com.epam.agents.dto.request.CreateProductRequest;
+import com.epam.agents.dto.request.PriceUpdateEntry;
 import com.epam.agents.dto.request.UpdateProductRequest;
+import com.epam.agents.dto.response.BulkPriceUpdateResponse;
 import com.epam.agents.dto.response.ProductResponse;
 import com.epam.agents.entity.Product;
 import com.epam.agents.exception.DuplicateResourceException;
@@ -113,5 +121,37 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Product", "id", id));
         productRepository.delete(product);
         log.info("Deleted product id: {}", id);
+    }
+
+    @Override
+    @Transactional
+    public BulkPriceUpdateResponse bulkUpdatePrices(BulkPriceUpdateRequest request) {
+        log.info("Bulk price update: {} entries", request.updates().size());
+
+        List<String> invalidSkus = new ArrayList<>();
+        List<PriceUpdateEntry> validEntries = new ArrayList<>();
+
+        for (PriceUpdateEntry entry : request.updates()) {
+            if (entry.newPrice().compareTo(BigDecimal.ZERO) <= 0) {
+                invalidSkus.add(entry.sku());
+            } else {
+                validEntries.add(entry);
+            }
+        }
+
+        List<String> validSkus = validEntries.stream().map(PriceUpdateEntry::sku).toList();
+        List<Product> foundProducts = validSkus.isEmpty() ? List.of() : productRepository.findAllBySkuIn(validSkus);
+
+        Set<String> foundSkuSet = foundProducts.stream().map(Product::getSku).collect(Collectors.toSet());
+        List<String> notFoundSkus = validSkus.stream().filter(sku -> !foundSkuSet.contains(sku)).toList();
+
+        Map<String, BigDecimal> priceMap = validEntries.stream().collect(Collectors.toMap(PriceUpdateEntry::sku, PriceUpdateEntry::newPrice));
+
+        for (Product product : foundProducts) {
+            product.setPrice(priceMap.get(product.getSku()));
+        }
+
+        log.info("Bulk price update complete: updated={}, notFound={}, invalid={}", foundProducts.size(), notFoundSkus.size(), invalidSkus.size());
+        return new BulkPriceUpdateResponse(foundProducts.size(), notFoundSkus, invalidSkus);
     }
 }

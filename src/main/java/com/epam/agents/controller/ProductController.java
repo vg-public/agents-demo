@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -24,8 +25,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import com.epam.agents.dto.request.BulkPriceUpdateRequest;
 import com.epam.agents.dto.request.CreateProductRequest;
 import com.epam.agents.dto.request.UpdateProductRequest;
+import com.epam.agents.dto.response.BulkPriceUpdateResponse;
 import com.epam.agents.dto.response.PagedResponse;
 import com.epam.agents.dto.response.ProductResponse;
 import com.epam.agents.service.ProductService;
@@ -172,5 +175,24 @@ public class ProductController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         productService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Updates the price of multiple products in a single transaction.
+     *
+     * <p>
+     * Entries with a non-positive {@code newPrice} are reported in {@code invalidSkus}.
+     * Entries whose SKU is not found are reported in {@code notFoundSkus}.
+     * Neither condition causes HTTP 4xx — they are included in the HTTP 200 response.
+     * </p>
+     *
+     * @param request
+     *            1–100 SKU + new-price pairs
+     * @return HTTP 200 with update summary
+     */
+    @PatchMapping("/prices")
+    @Operation(summary = "Bulk update product prices by SKU")
+    public ResponseEntity<BulkPriceUpdateResponse> bulkUpdatePrices(@Valid @RequestBody BulkPriceUpdateRequest request) {
+        return ResponseEntity.ok(productService.bulkUpdatePrices(request));
     }
 }

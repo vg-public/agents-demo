@@ -24,8 +24,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import com.epam.agents.dto.request.BulkPriceUpdateRequest;
 import com.epam.agents.dto.request.CreateProductRequest;
+import com.epam.agents.dto.request.PriceUpdateEntry;
 import com.epam.agents.dto.request.UpdateProductRequest;
+import com.epam.agents.dto.response.BulkPriceUpdateResponse;
 import com.epam.agents.dto.response.ProductResponse;
 import com.epam.agents.entity.Product;
 import com.epam.agents.exception.DuplicateResourceException;
@@ -265,6 +268,104 @@ class ProductServiceImplTest {
             Page<ProductResponse> result = productService.search("Widget", null, null, pageable);
 
             assertThat(result.getContent()).hasSize(1);
+        }
+    }
+
+    // ─── bulkUpdatePrices ────────────────────────────────────────────────────
+
+    @Nested
+    class BulkUpdatePrices {
+
+        private Product productA;
+        private Product productB;
+
+        @BeforeEach
+        void setUpProducts() {
+            productA = new Product();
+            productA.setId(10L);
+            productA.setSku("WDG-001");
+            productA.setName("Widget");
+            productA.setPrice(new BigDecimal("15.00"));
+
+            productB = new Product();
+            productB.setId(11L);
+            productB.setSku("GDG-001");
+            productB.setName("Gadget");
+            productB.setPrice(new BigDecimal("99.99"));
+        }
+
+        @Test
+        void bulkUpdatePrices_shouldUpdateAllMatchingProducts() {
+            BulkPriceUpdateRequest request = new BulkPriceUpdateRequest(List.of(new PriceUpdateEntry("WDG-001", new BigDecimal("19.99")), new PriceUpdateEntry("GDG-001", new BigDecimal("129.00"))));
+            given(productRepository.findAllBySkuIn(List.of("WDG-001", "GDG-001"))).willReturn(List.of(productA, productB));
+
+            BulkPriceUpdateResponse result = productService.bulkUpdatePrices(request);
+
+            assertThat(result.updatedCount()).isEqualTo(2);
+            assertThat(result.notFoundSkus()).isEmpty();
+            assertThat(result.invalidSkus()).isEmpty();
+            assertThat(productA.getPrice()).isEqualByComparingTo("19.99");
+            assertThat(productB.getPrice()).isEqualByComparingTo("129.00");
+        }
+
+        @Test
+        void bulkUpdatePrices_shouldCollectNotFoundSkus_whenSkuDoesNotExist() {
+            BulkPriceUpdateRequest request = new BulkPriceUpdateRequest(List.of(new PriceUpdateEntry("WDG-001", new BigDecimal("19.99")), new PriceUpdateEntry("UNKNOWN-SKU", new BigDecimal("49.99"))));
+            given(productRepository.findAllBySkuIn(List.of("WDG-001", "UNKNOWN-SKU"))).willReturn(List.of(productA));
+
+            BulkPriceUpdateResponse result = productService.bulkUpdatePrices(request);
+
+            assertThat(result.updatedCount()).isEqualTo(1);
+            assertThat(result.notFoundSkus()).containsExactly("UNKNOWN-SKU");
+            assertThat(result.invalidSkus()).isEmpty();
+        }
+
+        @Test
+        void bulkUpdatePrices_shouldCollectInvalidSkus_whenPriceIsZeroOrNegative() {
+            BulkPriceUpdateRequest request = new BulkPriceUpdateRequest(List.of(new PriceUpdateEntry("WDG-001", new BigDecimal("19.99")), new PriceUpdateEntry("BAD-ZERO", BigDecimal.ZERO), new PriceUpdateEntry("BAD-NEG", new BigDecimal("-5.00"))));
+            given(productRepository.findAllBySkuIn(List.of("WDG-001"))).willReturn(List.of(productA));
+
+            BulkPriceUpdateResponse result = productService.bulkUpdatePrices(request);
+
+            assertThat(result.updatedCount()).isEqualTo(1);
+            assertThat(result.invalidSkus()).containsExactlyInAnyOrder("BAD-ZERO", "BAD-NEG");
+            assertThat(result.notFoundSkus()).isEmpty();
+        }
+
+        @Test
+        void bulkUpdatePrices_shouldReturnZeroUpdated_whenAllSkusAreInvalid() {
+            BulkPriceUpdateRequest request = new BulkPriceUpdateRequest(List.of(new PriceUpdateEntry("BAD-1", new BigDecimal("-1.00")), new PriceUpdateEntry("BAD-2", BigDecimal.ZERO)));
+
+            BulkPriceUpdateResponse result = productService.bulkUpdatePrices(request);
+
+            assertThat(result.updatedCount()).isZero();
+            assertThat(result.invalidSkus()).containsExactlyInAnyOrder("BAD-1", "BAD-2");
+            assertThat(result.notFoundSkus()).isEmpty();
+            then(productRepository).should(never()).findAllBySkuIn(any());
+        }
+
+        @Test
+        void bulkUpdatePrices_shouldReturnZeroUpdated_whenAllSkusNotFound() {
+            BulkPriceUpdateRequest request = new BulkPriceUpdateRequest(List.of(new PriceUpdateEntry("MISSING-1", new BigDecimal("10.00")), new PriceUpdateEntry("MISSING-2", new BigDecimal("20.00"))));
+            given(productRepository.findAllBySkuIn(List.of("MISSING-1", "MISSING-2"))).willReturn(List.of());
+
+            BulkPriceUpdateResponse result = productService.bulkUpdatePrices(request);
+
+            assertThat(result.updatedCount()).isZero();
+            assertThat(result.notFoundSkus()).containsExactlyInAnyOrder("MISSING-1", "MISSING-2");
+            assertThat(result.invalidSkus()).isEmpty();
+        }
+
+        @Test
+        void bulkUpdatePrices_shouldHandleMixOfAllOutcomes() {
+            BulkPriceUpdateRequest request = new BulkPriceUpdateRequest(List.of(new PriceUpdateEntry("WDG-001", new BigDecimal("19.99")), new PriceUpdateEntry("UNKNOWN-SKU", new BigDecimal("49.99")), new PriceUpdateEntry("BAD-PRICE", new BigDecimal("-5.00"))));
+            given(productRepository.findAllBySkuIn(List.of("WDG-001", "UNKNOWN-SKU"))).willReturn(List.of(productA));
+
+            BulkPriceUpdateResponse result = productService.bulkUpdatePrices(request);
+
+            assertThat(result.updatedCount()).isEqualTo(1);
+            assertThat(result.notFoundSkus()).containsExactly("UNKNOWN-SKU");
+            assertThat(result.invalidSkus()).containsExactly("BAD-PRICE");
         }
     }
 }

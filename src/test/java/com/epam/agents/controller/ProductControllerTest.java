@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -30,8 +31,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.epam.agents.dto.request.BulkPriceUpdateRequest;
 import com.epam.agents.dto.request.CreateProductRequest;
+import com.epam.agents.dto.request.PriceUpdateEntry;
 import com.epam.agents.dto.request.UpdateProductRequest;
+import com.epam.agents.dto.response.BulkPriceUpdateResponse;
 import com.epam.agents.dto.response.ProductResponse;
 import com.epam.agents.exception.DuplicateResourceException;
 import com.epam.agents.exception.InvalidSearchCriteriaException;
@@ -223,6 +227,60 @@ class ProductControllerTest {
             given(productService.search(isNull(), isNull(), isNull(), any(Pageable.class))).willReturn(page);
 
             mockMvc.perform(get("/api/v1/products/search").param("sort", "price,desc")).andExpect(status().isOk());
+        }
+    }
+
+    // ─── PATCH /api/v1/products/prices ──────────────────────────────────────
+
+    @Nested
+    class BulkUpdatePrices {
+
+        @Test
+        void bulkUpdatePrices_shouldReturn200_withSummary_whenRequestIsValid() throws Exception {
+            BulkPriceUpdateRequest request = new BulkPriceUpdateRequest(List.of(new PriceUpdateEntry("WDG-001", new BigDecimal("19.99"))));
+            BulkPriceUpdateResponse response = new BulkPriceUpdateResponse(1, List.of(), List.of());
+            given(productService.bulkUpdatePrices(any(BulkPriceUpdateRequest.class))).willReturn(response);
+
+            mockMvc.perform(patch("/api/v1/products/prices").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request))).andExpect(status().isOk()).andExpect(jsonPath("$.updatedCount").value(1)).andExpect(jsonPath("$.notFoundSkus").isEmpty())
+                    .andExpect(jsonPath("$.invalidSkus").isEmpty());
+        }
+
+        @Test
+        void bulkUpdatePrices_shouldReturn200_withNotFoundAndInvalidSkus() throws Exception {
+            BulkPriceUpdateRequest request = new BulkPriceUpdateRequest(List.of(new PriceUpdateEntry("WDG-001", new BigDecimal("19.99")), new PriceUpdateEntry("UNKNOWN", new BigDecimal("5.00")), new PriceUpdateEntry("BAD", new BigDecimal("-1.00"))));
+            BulkPriceUpdateResponse response = new BulkPriceUpdateResponse(1, List.of("UNKNOWN"), List.of("BAD"));
+            given(productService.bulkUpdatePrices(any(BulkPriceUpdateRequest.class))).willReturn(response);
+
+            mockMvc.perform(patch("/api/v1/products/prices").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request))).andExpect(status().isOk()).andExpect(jsonPath("$.updatedCount").value(1)).andExpect(jsonPath("$.notFoundSkus[0]").value("UNKNOWN"))
+                    .andExpect(jsonPath("$.invalidSkus[0]").value("BAD"));
+        }
+
+        @Test
+        void bulkUpdatePrices_shouldReturn400_whenUpdatesListIsEmpty() throws Exception {
+            String body = "{\"updates\": []}";
+
+            mockMvc.perform(patch("/api/v1/products/prices").contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.title").value("Validation Failed"));
+        }
+
+        @Test
+        void bulkUpdatePrices_shouldReturn400_whenUpdatesListIsNull() throws Exception {
+            String body = "{\"updates\": null}";
+
+            mockMvc.perform(patch("/api/v1/products/prices").contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.title").value("Validation Failed"));
+        }
+
+        @Test
+        void bulkUpdatePrices_shouldReturn400_whenSkuIsBlankInEntry() throws Exception {
+            String body = "{\"updates\": [{\"sku\": \"\", \"newPrice\": 10.00}]}";
+
+            mockMvc.perform(patch("/api/v1/products/prices").contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.title").value("Validation Failed"));
+        }
+
+        @Test
+        void bulkUpdatePrices_shouldReturn400_whenNewPriceIsNullInEntry() throws Exception {
+            String body = "{\"updates\": [{\"sku\": \"WDG-001\", \"newPrice\": null}]}";
+
+            mockMvc.perform(patch("/api/v1/products/prices").contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.title").value("Validation Failed"));
         }
     }
 }
