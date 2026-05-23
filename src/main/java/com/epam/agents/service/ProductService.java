@@ -1,5 +1,7 @@
 package com.epam.agents.service;
 
+import java.math.BigDecimal;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -36,6 +38,23 @@ public interface ProductService {
      * @return a {@link Page} of {@link ProductResponse} DTOs
      */
     Page<ProductResponse> getAll(Pageable pageable);
+
+    /**
+     * Searches products by optional keyword and price range filters.
+     *
+     * @param keyword
+     *            case-insensitive partial match on product name; {@code null} matches all
+     * @param minPrice
+     *            lower price bound (inclusive); {@code null} means no lower bound
+     * @param maxPrice
+     *            upper price bound (inclusive); {@code null} means no upper bound
+     * @param pageable
+     *            pagination and sorting parameters
+     * @return a {@link Page} of matching {@link ProductResponse} DTOs; never {@code null}
+     * @throws com.epam.agents.exception.InvalidSearchCriteriaException
+     *             if {@code minPrice} is greater than {@code maxPrice}
+     */
+    Page<ProductResponse> search(String keyword, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
 
     /**
      * Creates a new product.

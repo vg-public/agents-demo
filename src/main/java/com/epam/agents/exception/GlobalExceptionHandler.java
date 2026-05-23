@@ -66,6 +66,23 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles {@link InvalidSearchCriteriaException} — returns HTTP 400.
+     *
+     * @param ex
+     *            the exception
+     * @return a ProblemDetail with status 400
+     */
+    @ExceptionHandler(InvalidSearchCriteriaException.class)
+    public ProblemDetail handleInvalidSearchCriteria(InvalidSearchCriteriaException ex) {
+        log.warn("Invalid search criteria: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setTitle("Invalid Search Criteria");
+        problem.setProperty(ERROR_CODE_PROPERTY, ex.getErrorCode());
+        problem.setProperty(TIMESTAMP_PROPERTY, Instant.now());
+        return problem;
+    }
+
+    /**
      * Handles bean-validation failures from {@code @Valid} on request bodies — returns HTTP 400.
      *
      * @param ex
