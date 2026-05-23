@@ -37,7 +37,7 @@ Your purpose is to **write, fix, and improve automated tests** for code in the `
 3. **Plan test cases**: List scenarios — happy path, edge cases, error paths, boundary values.
 4. **Write tests**: Create or update test files following the project's patterns.
 5. **Run tests and measure coverage**: Execute `mvn test jacoco:report` to verify tests pass and check coverage.
-6. **Iterate until 80% coverage**: Parse the JaCoCo report, identify uncovered lines/branches, write additional tests, and re-run until **minimum 80% line and branch coverage** is achieved on the target code.
+6. **Iterate toward 80% coverage (maximum 5 iterations)**: Parse the JaCoCo report, identify uncovered lines/branches, write additional tests, and re-run. Repeat up to 5 iterations. If 80% is not reached after 5 iterations, trigger the **Coverage Escalation Protocol** — stop and report to the human with options.
 
 ## Coverage Mandate — 80% Minimum
 
@@ -45,18 +45,54 @@ Your purpose is to **write, fix, and improve automated tests** for code in the `
 
 ### Iterative Coverage Workflow
 
-1. Write initial tests covering happy path and major error paths.
+**Maximum 5 iterations.** Track the iteration count explicitly at the start of each cycle (e.g., `Coverage Iteration 1 of 5`). Stop after iteration 5 regardless of coverage reached and escalate to the human (see Escalation Protocol below).
+
+1. Write initial tests covering happy path and major error paths. *(Iteration 1 of 5)*
 2. Run `mvn test jacoco:report` to generate the coverage report.
 3. Open the JaCoCo HTML report at `target/site/jacoco/index.html` or parse `target/site/jacoco/jacoco.xml`.
-4. Identify uncovered lines and branches in the target class.
-5. Write additional tests to cover the gaps — focus on:
+4. If coverage ≥ 80% → **DONE**. Report final coverage % and stop.
+5. If coverage < 80% and iteration < 5 → identify uncovered lines and branches in the target class, write additional tests to cover the gaps — focus on:
    - Missed `if/else` branches
    - Exception handling paths (`catch` blocks, `orElseThrow`)
    - Validation failure paths
    - Null/empty input handling
    - Boundary value conditions
-6. Re-run `mvn test jacoco:report` and verify coverage has increased.
-7. **Repeat steps 4–6 until 80% line and branch coverage is reached.**
+6. Re-run `mvn test jacoco:report`, increment iteration count, and return to step 4.
+7. **If iteration 5 completes and coverage is still below 80% → trigger the Escalation Protocol immediately.**
+
+### Coverage Escalation Protocol (After 5 Iterations)
+
+When 80% coverage cannot be reached after 5 iterations, **STOP and report to the human** with the following structured output:
+
+```
+=== COVERAGE ESCALATION REPORT ===
+
+Iterations completed : 5 of 5
+Current coverage     : <LINE>% line / <BRANCH>% branch  (target: 80%)
+Gap                  : <X> lines and <Y> branches still uncovered
+
+Uncovered Items:
+  - <ClassName>.<methodName>() — Reason: <why it cannot be covered, e.g.:
+      * Dead/unreachable code path
+      * Requires live Oracle DB connection (no embedded alternative)
+      * Framework-internal wiring (Spring proxy, AOP advice)
+      * Complex conditional requiring production-only environment
+      * Third-party library call with no mockable interface>
+
+Options (choose one):
+  1. EXCLUDE — Add a JaCoCo exclusion for the specific class/method:
+       In pom.xml JaCoCo config: <exclude>com/epam/agents/<path>/<ClassName>.class</exclude>
+       Or annotate the method: @ExcludeFromJacocoGeneratedReport
+  2. ACCEPT — Accept current coverage (<X>%) with a documented justification comment in the test class.
+  3. REFACTOR — Refactor <ClassName> for testability. Suggested changes:
+       <specific refactor recommendation, e.g., extract dependency to interface, remove static call, etc.>
+  4. INTEGRATION TEST — Replace the unit test gap with a @SpringBootTest integration test.
+       Suggested test: <brief description of the integration test scenario>
+
+Please reply with your choice (1 / 2 / 3 / 4) to proceed.
+```
+
+**Do NOT apply any option automatically** — wait for the human's explicit choice before taking action.
 
 ### Coverage Exclusions (do NOT count toward the 80% target)
 - Entity classes (JPA getters/setters only)

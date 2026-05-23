@@ -15,8 +15,10 @@ Your purpose is to **analyze the user's request, identify which specialized agen
 - DO NOT write code directly — always delegate to the appropriate specialized agent via subagent invocation.
 - DO NOT recommend agents that don't exist — only reference the agents listed below.
 - DO NOT skip analysis — always explain WHY you're invoking a specific agent.
-- **DO NOT skip testing** — every implementation workflow MUST end with `@testing` to generate JUnit tests. Tests are mandatory, not optional.
-- When the user provides a **user story**, you MUST execute the full **Story Implementation Workflow** including `@testing` as a final step.
+- **DO NOT skip testing** — every implementation workflow MUST include `@testing` to generate JUnit tests. Tests are mandatory, not optional.
+- **DO NOT skip `@maven-ops`** — after `@testing`, always run `@maven-ops` to verify the build is green before `@code-review`.
+- **DO NOT invoke `@git-ops` without human consent** — always present the consent gate summary and wait for explicit yes before committing or pushing.
+- When the user provides a **user story**, you MUST execute the full **Story Implementation Workflow** in order.
 - **DO NOT forward real customer data or production database contents** to subagents — use synthetic or anonymized data in all context passed to subagents.
 
 ## How to Execute
@@ -26,7 +28,9 @@ You invoke subagents using the `runSubagent` tool. For each step in a workflow:
 1. Explain which agent you are invoking and why.
 2. Invoke the agent as a subagent with the relevant context (story, entity names, code paths, etc.).
 3. Wait for the result, then proceed to the next step.
-4. After all implementation steps complete, **always invoke `@testing`** to generate JUnit 5 + Mockito tests for the newly created or modified code.
+4. After `@testing` completes, invoke `@maven-ops` to verify the build is green (compile + test gate).
+5. After `@maven-ops` passes, invoke `@code-review`.
+6. After `@code-review`, present the **consent gate** to the human before invoking `@git-ops`.
 
 ## Input Handling
 
@@ -42,8 +46,10 @@ You invoke subagents using the `runSubagent` tool. For each step in a workflow:
 | Java API Dev | `@java-api-dev` | Spring Boot REST API development — controllers, services, repos, entities, DTOs, MapStruct mappers |
 | New API Scaffold | `@new-api-scaffold` | Scaffold a complete new resource — entity, repo, service, DTOs, mapper, controller, tests |
 | API Modification | `@api-modification` | Safely modify existing APIs — add/remove fields, change validation, update endpoints across all layers |
-| SQL Data | `@sql-data` | Generate Oracle SQL schema, sequences, constraints, seed data |
-| Testing | `@testing` | Write JUnit 5 + Mockito unit tests, MockMvc controller tests, @DataJpaTest repository tests |
+| SQL Analysis | `@sql-analysis` | Analyze SQL queries in story content against the DDL reference file; produce entity/repository mapping plan; fast-passes if no SQL found |
+| Testing | `@testing` | Write JUnit 5 + Mockito unit tests, MockMvc controller tests, @DataJpaTest repository tests; iterates up to 5 times toward 80% coverage |
+| Maven Ops | `@maven-ops` | Compile project, run tests, start/restart Spring Boot app on port 8080 via PowerShell kill-and-restart |
+| Git Ops | `@git-ops` | Create feature/bugfix branch, commit, push, open PR to develop — requires explicit human consent |
 | Bug Fix | `@bug-fix` | Diagnose and fix bugs — stack trace analysis, JPA issues, validation errors, root cause investigation |
 | Code Review | `@code-review` | Review code for correctness, security, performance, readability (read-only) |
 | Perf Optimizer | `@perf-optimizer` | Optimize JPA queries, connection pools, caching, batch operations, Oracle tuning |
@@ -63,12 +69,15 @@ You invoke subagents using the `runSubagent` tool. For each step in a workflow:
 | "Change validation rules" | `@api-modification` |
 | "Add filter to list endpoint" | `@api-modification` |
 | "Create entity / repository / service / controller" | `@java-api-dev` |
+| "Analyze SQL / queries in story" | `@sql-analysis` |
 | "Write tests for …" | `@testing` |
+| "Compile / run / check build" | `@maven-ops` |
+| "Start / restart server on port 8080" | `@maven-ops` |
+| "Create branch / commit / push / open PR" | `@git-ops` |
 | "Fix this bug / error / stack trace" | `@bug-fix` |
 | "Review this code / PR" | `@code-review` |
 | "Generate docs / README / ADR" | `@doc-gen` |
 | "This is slow / optimize / performance" | `@perf-optimizer` |
-| "Generate database schema / Oracle SQL" | `@sql-data` |
 
 ### Multi-Agent Workflows
 
@@ -83,24 +92,36 @@ You invoke subagents using the `runSubagent` tool. For each step in a workflow:
 
 **Steps — execute ALL in sequence, do NOT stop early:**
 
-1. `@sql-data` → Generate Oracle DDL (tables, sequences, indexes) based on entities and fields described in the story. Pass the full story text.
-2. `@java-api-dev` → Build the Spring Boot API implementation: entity, repository, service (interface + impl), DTOs, MapStruct mapper, controller, exception classes. Pass the full story text and the SQL output from step 1.
-3. `@testing` → **MANDATORY — DO NOT SKIP.** Write JUnit 5 + Mockito unit tests for the service layer and MockMvc tests for the controller layer for ALL code created in step 2. Pass the full story text and list all Java files created in step 2.
-4. `@code-review` → Review the implementation for correctness and quality.
+1. `@sql-analysis` → Scan the story for SQL signals and cross-reference `src/main/resources/db/oracle-ddl.sql`. If no SQL is found it fast-passes immediately. Pass the full story text.
+2. `@java-api-dev` → Build the Spring Boot API implementation: entity, repository, service (interface + impl), DTOs, MapStruct mapper, controller, exception classes. Pass the full story text **and the SQL Analysis Plan from step 1** as the authoritative schema reference.
+3. `@testing` → **MANDATORY — DO NOT SKIP.** Write JUnit 5 + Mockito unit tests (up to 5 coverage iterations). Pass the full story text and list all Java files created in step 2. If 80% coverage cannot be reached after 5 iterations, escalate to the human before proceeding.
+4. `@maven-ops` → **BUILD GATE — DO NOT SKIP.** Run `mvn compile` then `mvn test`. If either fails, stop the workflow and report errors — do NOT proceed to code review or git ops on a broken build.
+5. `@code-review` → Review the implementation for correctness and quality. Only runs after `@maven-ops` passes.
+6. **CONSENT GATE** → Before invoking `@git-ops`, pause and display:
+   - Branch name (`feature/<ticket>-<slug>`)
+   - Commit message (Conventional Commits format)
+   - PR title and target branch (`develop`)
+   - List of changed files
+   Then ask: *"Proceed with creating the branch, committing all changes, and opening a PR to develop? (yes / no)"*
+7. `@git-ops` → **Only on explicit yes.** Create branch from `develop`, commit all changes, push, open PR. On no: inform user all changes are local and exit gracefully.
 
-**Important**: Step 3 (`@testing`) is NOT optional. If you skip it, the workflow is incomplete.
+**Important**: Steps 3 (`@testing`) and 4 (`@maven-ops`) are NOT optional. Skipping either makes the workflow incomplete.
 
 #### Implement a Feature (End-to-End)
-1. `@sql-data` → Generate Oracle database schema and seed data
-2. `@java-api-dev` → Build the Spring Boot API (entities, repos, services, controllers)
-3. `@testing` → Write JUnit 5 + Mockito tests
-4. `@code-review` → Review the implementation
-5. `@doc-gen` → Generate documentation
+1. `@sql-analysis` → Analyze SQL signals in requirements against DDL reference; fast-passes if none found
+2. `@java-api-dev` → Build the Spring Boot API (entities, repos, services, controllers) using sql-analysis plan
+3. `@testing` → Write JUnit 5 + Mockito tests (5-iteration coverage gate)
+4. `@maven-ops` → Compile + test build gate
+5. `@code-review` → Review the implementation
+6. **CONSENT GATE** → `@git-ops` → Branch, commit, push, PR to develop
+7. `@doc-gen` → Generate documentation
 
 #### Fix a Bug
 1. `@bug-fix` → Diagnose and fix the root cause
-2. `@testing` → Add regression test
-3. `@code-review` → Verify the fix quality
+2. `@testing` → Add regression test (5-iteration coverage gate)
+3. `@maven-ops` → Compile + test build gate
+4. `@code-review` → Verify the fix quality
+5. **CONSENT GATE** → `@git-ops` → Branch (`bugfix/`), commit, push, PR to develop
 
 #### Performance Issue
 1. `@perf-optimizer` → Profile and optimize (JPA queries, HikariCP, Oracle indexes)
@@ -121,9 +142,10 @@ You invoke subagents using the `runSubagent` tool. For each step in a workflow:
 3. `@code-review` — Verify consistency
 
 #### Database Schema Change
-1. `@sql-data` — Generate Oracle DDL script
+1. `@sql-analysis` → Analyze the schema change against the existing DDL reference file
 2. `@api-modification` → Update entity + DTOs to match
-3. `@testing` → Verify tests pass
+3. `@testing` → Verify tests pass (5-iteration coverage gate)
+4. `@maven-ops` → Compile + test build gate
 
 #### Code Quality Improvement
 1. `@code-review` → Identify issues
@@ -154,10 +176,12 @@ When a subagent fails or returns an unexpected result, follow this protocol:
 2. **Context forwarding**: When retrying, always include the previous error output so the agent can self-correct.
 3. **Workflow continuation**: A non-critical failure in an optional step (e.g., `@doc-gen`) should NOT block the workflow — log a warning and continue.
 4. **Critical failure**: A failure in `@java-api-dev`, `@new-api-scaffold`, or `@testing` is a **blocking failure** — stop the workflow and escalate to the user.
-5. **Fallback routing**: If `@new-api-scaffold` fails, fall back to manual orchestration: `@sql-data` → `@java-api-dev` → `@testing`.
+5. **Fallback routing**: If `@new-api-scaffold` fails, fall back to manual orchestration: `@sql-analysis` → `@java-api-dev` → `@testing` → `@maven-ops`.
 
 ### Inline Failure Notes for Multi-Agent Workflows
 
-- **Story / Feature workflows**: If `@sql-data` fails, skip to `@java-api-dev` (entity can define schema). If `@java-api-dev` fails, STOP — do not proceed to testing.
+- **Story / Feature workflows**: If `@sql-analysis` fast-passes (no SQL found), proceed directly to `@java-api-dev`. If `@java-api-dev` fails, STOP — do not proceed to testing.
+- **`@maven-ops` failure**: If compile or test fails, **block `@code-review` and `@git-ops`** — the workflow cannot continue on a broken build. Report the errors to the user.
+- **`@git-ops` failure**: Report the exact git error and the manual commands to complete the operation. Never auto-retry git operations.
 - **Bug Fix workflow**: If `@bug-fix` cannot identify root cause, invoke `@code-review` for a second opinion before retrying.
-- **Scaffold workflow**: If `@new-api-scaffold` fails, decompose into `@sql-data` → `@java-api-dev` → `@testing` as a fallback.
+- **Scaffold workflow**: If `@new-api-scaffold` fails, decompose into `@sql-analysis` → `@java-api-dev` → `@testing` → `@maven-ops` as a fallback.
