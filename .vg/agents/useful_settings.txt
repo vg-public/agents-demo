@@ -1,0 +1,205 @@
+
+================================================================================
+USEFUL VS CODE SETTINGS FOR THIS PROJECT
+Workspace: agents-demo (Java Spring Boot + Copilot Agent Workflow)
+File: .vscode/settings.json
+================================================================================
+
+
+--------------------------------------------------------------------------------
+1. GITHUB COPILOT AGENT SETTINGS
+--------------------------------------------------------------------------------
+
+{
+  // REQUIRED: allows Copilot agent (@testing, @maven-ops, @git-ops) to run
+  // terminal commands (mvn, git, gh, powershell) autonomously.
+  // Without this, agents can read/write files but cannot compile, run tests,
+  // or execute git operations — you must run commands manually.
+  "github.copilot.chat.agent.runInTerminal": true,
+
+  // Allows Copilot to auto-approve terminal commands flagged as safe.
+  // Set to "on" for trusted workspaces; keeps workflow uninterrupted.
+  // Options: "on" | "off" | "auto"
+  "github.copilot.chat.agent.autoApproveTerminalCommands": "on",
+
+  // Increase token limit for agent context — useful when passing large
+  // story files + multiple Java source files to @java-api-dev or @testing.
+  "github.copilot.chat.agent.maxRequestTokens": 16000,
+
+  // Show Copilot agent thinking steps in the chat panel — useful for
+  // debugging why an agent routed incorrectly or skipped a step.
+  "github.copilot.chat.experimental.agentDescriptions": true
+}
+
+
+--------------------------------------------------------------------------------
+2. JAVA / SPRING BOOT DEVELOPMENT SETTINGS
+--------------------------------------------------------------------------------
+
+{
+  // Formatter: use the project's custom formatter (custom-java-formatter.xml).
+  // Spotless enforces this at build time; this keeps the editor consistent.
+  "java.format.settings.url": "${workspaceFolder}/custom-java-formatter.xml",
+  "java.format.settings.profile": "AgentsDemo",
+
+  // Auto-format on save (Spotless will catch anything missed at mvn verify).
+  "editor.formatOnSave": true,
+  "[java]": {
+    "editor.defaultFormatter": "redhat.java",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+
+  // Show parameter names inline — helpful with Spring annotations and
+  // MapStruct mapper method signatures.
+  "java.inlayHints.parameterNames.enabled": "all",
+
+  // Enables Spring Boot Dashboard — start/stop the app from the sidebar
+  // instead of relying solely on @maven-ops for server management.
+  "spring-boot.ls.javahome": "${env:JAVA_HOME}",
+
+  // Exclude target/ from file watcher — prevents VS Code from re-indexing
+  // compiled classes on every Maven build, which causes IDE slowdowns.
+  "files.watcherExclude": {
+    "**/target/**": true,
+    "**/.git/objects/**": true,
+    "**/node_modules/**": true
+  },
+
+  // Exclude target/ from search results — prevents searching compiled
+  // .class files and generated sources when using Ctrl+Shift+F.
+  "search.exclude": {
+    "**/target": true,
+    "**/target/**": true
+  },
+
+  // Exclude target/ from file explorer tree.
+  "files.exclude": {
+    "**/target/classes": true,
+    "**/target/test-classes": true,
+    "**/target/generated-sources": true,
+    "**/target/generated-test-sources": true,
+    "**/target/maven-status": true
+  }
+}
+
+
+--------------------------------------------------------------------------------
+3. TERMINAL SETTINGS (PowerShell on Windows)
+--------------------------------------------------------------------------------
+
+{
+  // Set PowerShell as default terminal — required for @maven-ops kill-and-
+  // restart script (uses Get-NetTCPConnection, Stop-Process).
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+
+  // Increase scroll buffer — Maven build output is verbose; without this
+  // you lose the early [ERROR] lines by the time the build finishes.
+  "terminal.integrated.scrollback": 10000,
+
+  // Persist terminal sessions across window reloads — keeps running mvn
+  // spring-boot:run process alive if you reload the VS Code window.
+  "terminal.integrated.enablePersistentSessions": true,
+
+  // Show terminal in editor area (alongside code) rather than bottom panel.
+  // Useful when watching mvn test output next to the test file.
+  "terminal.integrated.defaultLocation": "editor"
+}
+
+
+--------------------------------------------------------------------------------
+4. GIT SETTINGS
+--------------------------------------------------------------------------------
+
+{
+  // Always fetch before comparing local vs remote — prevents @git-ops
+  // from creating a branch on stale develop state.
+  "git.autofetch": true,
+  "git.autofetchPeriod": 180,
+
+  // Confirm before force-push (extra safety on top of @git-ops constraint).
+  "git.confirmForcePush": true,
+
+  // Show branch name in status bar — quick confirmation you're on the
+  // right feature branch before running @git-ops.
+  "git.branchProtection": ["main", "develop"],
+
+  // Prune remote-tracking branches on fetch — keeps the branch list clean
+  // after PRs are merged and remote branches deleted.
+  "git.pruneOnFetch": true
+}
+
+
+--------------------------------------------------------------------------------
+5. EDITOR QUALITY-OF-LIFE SETTINGS
+--------------------------------------------------------------------------------
+
+{
+  // Rulers at 80 and 120 chars — SonarQube S103 flags lines > 120.
+  "editor.rulers": [80, 120],
+
+  // Highlight trailing whitespace — Spotless will reject files with it.
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  // Bracket pair colorization — helps reading nested Spring annotations
+  // (@SpringBootTest, @MockBean, @DataJpaTest with configuration).
+  "editor.bracketPairColorization.enabled": true,
+
+  // Sticky scroll — keeps the class/method declaration visible while
+  // scrolling through long service implementation files.
+  "editor.stickyScroll.enabled": true
+}
+
+
+--------------------------------------------------------------------------------
+6. JACOCO COVERAGE REPORT VIEWER
+--------------------------------------------------------------------------------
+
+If you install the "Coverage Gutters" extension (ryanluker.vscode-coverage-gutters):
+
+{
+  // Point to the JaCoCo XML report generated by: mvn test jacoco:report
+  "coverage-gutters.coverageFileNames": [
+    "target/site/jacoco/jacoco.xml"
+  ],
+
+  // Show coverage inline in the gutter (green/red lines next to line numbers).
+  "coverage-gutters.showLineCoverage": true,
+  "coverage-gutters.showBranchCoverage": true,
+
+  // Auto-reload coverage when the XML file changes (after each mvn test run).
+  "coverage-gutters.watchTaskOnLaunch": true
+}
+
+
+--------------------------------------------------------------------------------
+7. RECOMMENDED EXTENSIONS (.vscode/extensions.json)
+--------------------------------------------------------------------------------
+
+{
+  "recommendations": [
+    "redhat.java",                          // Java language support
+    "vscjava.vscode-spring-boot-dashboard", // Spring Boot start/stop sidebar
+    "vscjava.vscode-java-test",             // Run individual JUnit tests inline
+    "vscjava.vscode-maven",                 // Maven lifecycle sidebar
+    "ryanluker.vscode-coverage-gutters",    // JaCoCo inline coverage display
+    "github.copilot",                       // Copilot completions
+    "github.copilot-chat",                  // Copilot Chat + agents
+    "mhutchie.git-graph",                   // Visual git branch graph
+    "eamodio.gitlens"                       // Git blame + history inline
+  ]
+}
+
+
+--------------------------------------------------------------------------------
+NOTES
+--------------------------------------------------------------------------------
+- Settings in sections 1-5 go into .vscode/settings.json (workspace-scoped).
+- Section 6 requires the Coverage Gutters extension to be installed first.
+- Section 7 goes into .vscode/extensions.json (separate file).
+- "github.copilot.chat.agent.runInTerminal": true is the MOST IMPORTANT setting
+  for this project's agent workflow — without it, @testing, @maven-ops, and
+  @git-ops cannot run terminal commands and the automated pipeline breaks.
