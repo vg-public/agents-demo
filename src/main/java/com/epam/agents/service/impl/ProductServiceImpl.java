@@ -70,7 +70,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public Page<ProductResponse> getAll(Pageable pageable) {
         log.debug("Fetching all products, page: {}", pageable);
-        return search(null, null, null, pageable);
+        return productRepository.findAll(pageable).map(productMapper::toResponse);
     }
 
     @Override

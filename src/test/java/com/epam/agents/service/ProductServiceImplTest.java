@@ -3,6 +3,7 @@ package com.epam.agents.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
@@ -21,12 +22,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import com.epam.agents.dto.request.CreateProductRequest;
 import com.epam.agents.dto.request.UpdateProductRequest;
 import com.epam.agents.dto.response.ProductResponse;
 import com.epam.agents.entity.Product;
 import com.epam.agents.exception.DuplicateResourceException;
+import com.epam.agents.exception.InvalidPriceRangeException;
 import com.epam.agents.exception.ResourceNotFoundException;
 import com.epam.agents.mapper.ProductMapper;
 import com.epam.agents.repository.ProductRepository;
@@ -90,6 +93,23 @@ class ProductServiceImplTest {
         assertThatThrownBy(() -> productService.getById(99L)).isInstanceOf(ResourceNotFoundException.class).hasMessageContaining("Product").hasMessageContaining("99");
     }
 
+    @Test
+    void getBySku_shouldReturnProductResponse_whenProductExists() {
+        given(productRepository.findBySku("TEST-001")).willReturn(Optional.of(product));
+        given(productMapper.toResponse(product)).willReturn(productResponse);
+
+        ProductResponse result = productService.getBySku("TEST-001");
+
+        assertThat(result.sku()).isEqualTo("TEST-001");
+    }
+
+    @Test
+    void getBySku_shouldThrowResourceNotFoundException_whenProductDoesNotExist() {
+        given(productRepository.findBySku("MISSING-001")).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.getBySku("MISSING-001")).isInstanceOf(ResourceNotFoundException.class).hasMessageContaining("MISSING-001");
+    }
+
     // ─── getAll ─────────────────────────────────────────────────────────────
 
     @Test
@@ -117,6 +137,25 @@ class ProductServiceImplTest {
         assertThat(result).isNotNull();
         assertThat(result.getTotalElements()).isZero();
         assertThat(result.getContent()).isEmpty();
+    }
+
+    @Test
+    void search_shouldReturnPageOfMatchingProductResponses() {
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Product> productPage = new PageImpl<>(List.of(product), pageable, 1);
+        given(productRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Product>>any(), eq(pageable))).willReturn(productPage);
+        given(productMapper.toResponse(product)).willReturn(productResponse);
+
+        Page<ProductResponse> result = productService.search("widget", new BigDecimal("10.00"), new BigDecimal("50.00"), pageable);
+
+        assertThat(result.getContent()).containsExactly(productResponse);
+    }
+
+    @Test
+    void search_shouldThrowInvalidPriceRangeException_whenMinimumExceedsMaximum() {
+        assertThatThrownBy(() -> productService.search(null, new BigDecimal("50.00"), new BigDecimal("10.00"), PageRequest.of(0, 20))).isInstanceOf(InvalidPriceRangeException.class);
+
+        then(productRepository).shouldHaveNoInteractions();
     }
 
     // ─── create ─────────────────────────────────────────────────────────────
@@ -189,6 +228,6 @@ class ProductServiceImplTest {
 
         assertThatThrownBy(() -> productService.delete(99L)).isInstanceOf(ResourceNotFoundException.class).hasMessageContaining("Product").hasMessageContaining("99");
 
-        then(productRepository).should(never()).delete(any());
+        then(productRepository).should(never()).delete(any(Product.class));
     }
 }

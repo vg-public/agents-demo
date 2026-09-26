@@ -3,6 +3,7 @@ package com.epam.agents.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -31,6 +32,7 @@ import com.epam.agents.dto.request.CreateProductRequest;
 import com.epam.agents.dto.request.UpdateProductRequest;
 import com.epam.agents.dto.response.ProductResponse;
 import com.epam.agents.exception.DuplicateResourceException;
+import com.epam.agents.exception.InvalidPriceRangeException;
 import com.epam.agents.exception.ResourceNotFoundException;
 import com.epam.agents.service.ProductService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -65,6 +67,20 @@ class ProductControllerTest {
     // ─── GET /api/v1/products/{id} ──────────────────────────────────────────
 
     @Test
+    void getBySku_shouldReturn200_whenProductExists() throws Exception {
+        given(productService.getBySku("TEST-001")).willReturn(productResponse);
+
+        mockMvc.perform(get("/api/v1/products/sku/TEST-001")).andExpect(status().isOk()).andExpect(jsonPath("$.sku").value("TEST-001")).andExpect(jsonPath("$.name").value("Test Widget"));
+    }
+
+    @Test
+    void getBySku_shouldReturn404_whenProductNotFound() throws Exception {
+        given(productService.getBySku("MISSING-001")).willThrow(new ResourceNotFoundException("Product", "sku", "MISSING-001"));
+
+        mockMvc.perform(get("/api/v1/products/sku/MISSING-001")).andExpect(status().isNotFound()).andExpect(jsonPath("$.errorCode").value("RESOURCE_NOT_FOUND"));
+    }
+
+    @Test
     void getById_shouldReturn200_whenProductExists() throws Exception {
         given(productService.getById(1L)).willReturn(productResponse);
 
@@ -82,16 +98,32 @@ class ProductControllerTest {
 
     @Test
     void getAll_shouldReturn200_withPagedProducts() throws Exception {
-        given(productService.getAll(any(Pageable.class))).willReturn(new PageImpl<>(List.of(productResponse)));
+        given(productService.search(eq(null), eq(null), eq(null), any(Pageable.class))).willReturn(new PageImpl<>(List.of(productResponse)));
 
         mockMvc.perform(get("/api/v1/products")).andExpect(status().isOk()).andExpect(jsonPath("$.content").isArray()).andExpect(jsonPath("$.content[0].sku").value("TEST-001")).andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.first").value(true));
     }
 
     @Test
     void getAll_shouldReturn200_withCustomPaginationParams() throws Exception {
-        given(productService.getAll(any(Pageable.class))).willReturn(new PageImpl<>(List.of(productResponse)));
+        given(productService.search(eq(null), eq(null), eq(null), any(Pageable.class))).willReturn(new PageImpl<>(List.of(productResponse)));
 
         mockMvc.perform(get("/api/v1/products").param("page", "0").param("size", "5").param("sortBy", "name").param("sortDir", "desc")).andExpect(status().isOk()).andExpect(jsonPath("$.content").isArray());
+    }
+
+    @Test
+    void getAll_shouldPassSearchAndPriceFiltersToService() throws Exception {
+        given(productService.search(eq("widget"), eq(new BigDecimal("10.00")), eq(new BigDecimal("50.00")), any(Pageable.class))).willReturn(new PageImpl<>(List.of(productResponse)));
+
+        mockMvc.perform(get("/api/v1/products").param("search", "widget").param("minPrice", "10.00").param("maxPrice", "50.00")).andExpect(status().isOk()).andExpect(jsonPath("$.content[0].sku").value("TEST-001"));
+
+        then(productService).should().search(eq("widget"), eq(new BigDecimal("10.00")), eq(new BigDecimal("50.00")), any(Pageable.class));
+    }
+
+    @Test
+    void getAll_shouldReturn400_whenMinimumPriceExceedsMaximum() throws Exception {
+        given(productService.search(eq(null), eq(new BigDecimal("50.00")), eq(new BigDecimal("10.00")), any(Pageable.class))).willThrow(new InvalidPriceRangeException());
+
+        mockMvc.perform(get("/api/v1/products").param("minPrice", "50.00").param("maxPrice", "10.00")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.title").value("Invalid Price Range")).andExpect(jsonPath("$.errorCode").value("INVALID_PRICE_RANGE"));
     }
 
     // ─── POST /api/v1/products ──────────────────────────────────────────────
