@@ -1,7 +1,7 @@
 package com.epam.agents.controller;
 
-import java.net.URI;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.util.Set;
 
 import jakarta.validation.Valid;
@@ -96,17 +96,18 @@ public class ProductController {
      *            field to sort by; validated against allowed fields (default "id")
      * @param sortDir
      *            sort direction: {@code asc} or {@code desc} (default "asc")
-    * @param search
-    *            optional substring matched against product name and SKU
-    * @param minPrice
-    *            optional inclusive minimum price
-    * @param maxPrice
-    *            optional inclusive maximum price
+     * @param search
+     *            optional substring matched against product name and SKU
+     * @param minPrice
+     *            optional inclusive minimum price
+     * @param maxPrice
+     *            optional inclusive maximum price
      * @return HTTP 200 with a {@link PagedResponse}
      */
     @GetMapping
     @Operation(summary = "Search products with pagination and optional filters")
-    public ResponseEntity<PagedResponse<ProductResponse>> getAll(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size, @RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String sortDir, @RequestParam(required = false) String search, @RequestParam(required = false) BigDecimal minPrice, @RequestParam(required = false) BigDecimal maxPrice) {
+    public ResponseEntity<PagedResponse<ProductResponse>> getAll(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size, @RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) String search, @RequestParam(required = false) BigDecimal minPrice, @RequestParam(required = false) BigDecimal maxPrice) {
 
         String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : DEFAULT_SORT_FIELD;
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(safeSortBy).descending() : Sort.by(safeSortBy).ascending();
