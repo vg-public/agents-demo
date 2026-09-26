@@ -92,6 +92,9 @@ target/spotless-index
 target/surefire-reports/
 target/failsafe-reports/
 
+# ==================== PR Review Artifacts ====================
+artifacts/pr-review/
+
 # ==================== MapStruct / Annotation Processors ====================
 target/generated-sources/
 target/generated-test-sources/

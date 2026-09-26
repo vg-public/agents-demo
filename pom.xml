@@ -181,6 +181,26 @@
           </execution>
         </executions>
       </plugin>
+      <!-- JaCoCo coverage for local quality checks and PR changed-line analysis. -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.12</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <phase>verify</phase>
+          </execution>
+        </executions>
+      </plugin>
 
       <!-- Spring Boot Maven Plugin -->
       <plugin>
