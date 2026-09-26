@@ -66,6 +66,23 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles invalid product price-range query parameters — returns HTTP 400.
+     *
+     * @param ex
+     *            the invalid price-range exception
+     * @return a ProblemDetail with status 400
+     */
+    @ExceptionHandler(InvalidPriceRangeException.class)
+    public ProblemDetail handleInvalidPriceRange(InvalidPriceRangeException ex) {
+        log.warn("Invalid price range: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setTitle("Invalid Price Range");
+        problem.setProperty(ERROR_CODE_PROPERTY, ex.getErrorCode());
+        problem.setProperty(TIMESTAMP_PROPERTY, Instant.now());
+        return problem;
+    }
+
+    /**
      * Handles bean-validation failures from {@code @Valid} on request bodies — returns HTTP 400.
      *
      * @param ex

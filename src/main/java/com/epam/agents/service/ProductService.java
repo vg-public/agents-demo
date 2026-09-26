@@ -1,5 +1,7 @@
 package com.epam.agents.service;
 
+import java.math.BigDecimal;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -16,6 +18,17 @@ import com.epam.agents.dto.response.ProductResponse;
  * </p>
  */
 public interface ProductService {
+
+    /**
+     * Retrieves a single product by its SKU.
+     *
+     * @param sku
+     *            the product's stock-keeping unit
+     * @return the product as a response DTO
+     * @throws com.epam.agents.exception.ResourceNotFoundException
+     *             if no product with the given SKU exists
+     */
+    ProductResponse getBySku(String sku);
 
     /**
      * Retrieves a single product by its surrogate ID.
@@ -36,6 +49,23 @@ public interface ProductService {
      * @return a {@link Page} of {@link ProductResponse} DTOs
      */
     Page<ProductResponse> getAll(Pageable pageable);
+
+    /**
+     * Searches products by name or SKU and filters by an optional inclusive price range.
+     *
+     * @param search
+     *            optional substring to match against name or SKU
+     * @param minPrice
+     *            optional inclusive minimum price
+     * @param maxPrice
+     *            optional inclusive maximum price
+     * @param pageable
+     *            pagination and sorting parameters
+     * @return a page of matching product response DTOs
+     * @throws com.epam.agents.exception.InvalidPriceRangeException
+     *             if both price bounds are supplied and the minimum exceeds the maximum
+     */
+    Page<ProductResponse> search(String search, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
 
     /**
      * Creates a new product.

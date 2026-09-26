@@ -1,5 +1,7 @@
 package com.epam.agents.service.impl;
 
+import java.math.BigDecimal;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -12,9 +14,11 @@ import com.epam.agents.dto.request.UpdateProductRequest;
 import com.epam.agents.dto.response.ProductResponse;
 import com.epam.agents.entity.Product;
 import com.epam.agents.exception.DuplicateResourceException;
+import com.epam.agents.exception.InvalidPriceRangeException;
 import com.epam.agents.exception.ResourceNotFoundException;
 import com.epam.agents.mapper.ProductMapper;
 import com.epam.agents.repository.ProductRepository;
+import com.epam.agents.repository.specification.ProductSpecifications;
 import com.epam.agents.service.ProductService;
 
 /**
@@ -56,9 +60,27 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    public ProductResponse getBySku(String sku) {
+        log.debug("Fetching product by SKU: {}", sku);
+        Product product = productRepository.findBySku(sku).orElseThrow(() -> new ResourceNotFoundException("Product", "sku", sku));
+        return productMapper.toResponse(product);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Page<ProductResponse> getAll(Pageable pageable) {
         log.debug("Fetching all products, page: {}", pageable);
-        return productRepository.findAll(pageable).map(productMapper::toResponse);
+        return search(null, null, null, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> search(String search, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
+        if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+            throw new InvalidPriceRangeException();
+        }
+        log.debug("Searching products with search={}, minPrice={}, maxPrice={}, page={}", search, minPrice, maxPrice, pageable);
+        return productRepository.findAll(ProductSpecifications.withFilters(search, minPrice, maxPrice), pageable).map(productMapper::toResponse);
     }
 
     @Override

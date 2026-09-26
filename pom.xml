@@ -156,6 +156,26 @@
           </annotationProcessorPaths>
         </configuration>
       </plugin>
+      <!-- JaCoCo coverage for local quality checks and PR changed-line analysis. -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.12</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <!-- Auto-register .githooks as the Git hooks directory on first Maven run.
                  This activates the pre-commit Spotless hook for all IDEs (VS Code, IntelliJ, etc.)
                  without any manual setup step after cloning. -->

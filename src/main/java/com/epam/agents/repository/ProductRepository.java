@@ -3,6 +3,7 @@ package com.epam.agents.repository;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.epam.agents.entity.Product;
 
@@ -14,7 +15,7 @@ import com.epam.agents.entity.Product;
  * Custom derived query methods are defined below.
  * </p>
  */
-public interface ProductRepository extends JpaRepository<Product, Long> {
+public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
     /**
      * Checks whether a product with the given SKU already exists.

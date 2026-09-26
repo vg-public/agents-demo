@@ -1,6 +1,7 @@
 package com.epam.agents.controller;
 
 import java.net.URI;
+import java.math.BigDecimal;
 import java.util.Set;
 
 import jakarta.validation.Valid;
@@ -59,6 +60,19 @@ public class ProductController {
     }
 
     /**
+     * Retrieves a single product by its SKU.
+     *
+     * @param sku
+     *            the product's stock-keeping unit
+     * @return HTTP 200 with the product, or HTTP 404 if not found
+     */
+    @GetMapping("/sku/{sku}")
+    @Operation(summary = "Get product by SKU")
+    public ResponseEntity<ProductResponse> getBySku(@PathVariable String sku) {
+        return ResponseEntity.ok(productService.getBySku(sku));
+    }
+
+    /**
      * Retrieves a single product by its surrogate ID.
      *
      * @param id
@@ -82,17 +96,23 @@ public class ProductController {
      *            field to sort by; validated against allowed fields (default "id")
      * @param sortDir
      *            sort direction: {@code asc} or {@code desc} (default "asc")
+    * @param search
+    *            optional substring matched against product name and SKU
+    * @param minPrice
+    *            optional inclusive minimum price
+    * @param maxPrice
+    *            optional inclusive maximum price
      * @return HTTP 200 with a {@link PagedResponse}
      */
     @GetMapping
-    @Operation(summary = "Get all products with pagination")
-    public ResponseEntity<PagedResponse<ProductResponse>> getAll(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size, @RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String sortDir) {
+    @Operation(summary = "Search products with pagination and optional filters")
+    public ResponseEntity<PagedResponse<ProductResponse>> getAll(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size, @RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String sortDir, @RequestParam(required = false) String search, @RequestParam(required = false) BigDecimal minPrice, @RequestParam(required = false) BigDecimal maxPrice) {
 
         String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : DEFAULT_SORT_FIELD;
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(safeSortBy).descending() : Sort.by(safeSortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<ProductResponse> results = productService.getAll(pageable);
+        Page<ProductResponse> results = productService.search(search, minPrice, maxPrice, pageable);
         return ResponseEntity.ok(PagedResponse.from(results));
     }
 
